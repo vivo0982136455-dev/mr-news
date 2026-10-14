@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.claude/
+
+# the YouTube key never enters this folder - it lives one folder up (Desktop\MrNews\youtube_key.txt)
+# or in GitHub's secret YT_API_KEY. These lines are a second guard.
+youtube_key.txt
+*key*.txt
+
+# pictures taken by the browser tests
+tests/shots/

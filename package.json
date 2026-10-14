@@ -1,0 +1,13 @@
+{
+  "name": "mr-news",
+  "private": true,
+  "type": "module",
+  "description": "Win's creator book: Mr News (daily Thai/Lao trends), Mr Idea, handbook, human & AI video lessons, notebook",
+  "scripts": {
+    "fetch": "node scripts/fetch-all.mjs",
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check-data.mjs",
+    "test": "node tests/all.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

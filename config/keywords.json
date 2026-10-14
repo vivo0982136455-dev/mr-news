@@ -1,0 +1,6 @@
+{
+  "_note": "Words the daily robot searches on YouTube. One search = 1 of the 100 free searches per day. week = videos published in the last 7 days, day = last 24 hours. Only videos with a Thai (or Lao) title or a channel from Thailand (or Laos) are kept.",
+  "th_week": ["คลิป", "ตลก", "แฟน", "คู่รัก", "กิน", "ทำอาหาร", "แม่", "แมว", "หมา", "vlog", "ชีวิต", "ท้า", "ผี", "เที่ยว", "รีวิว", "บ้าน", "ตลาด", "เด็ก", "ai", "สอน"],
+  "th_day": ["คลิป", "ตลก", "แฟน", "กิน", "แมว", "ชีวิต"],
+  "lo_week": ["ລາວ", "ມ່ວນ", "ກິນ", "ແຟນ", "ຕະຫລົກ", "ເພງລາວ", "ຊີວິດ", "ບ້ານ"]
+}

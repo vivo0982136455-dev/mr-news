@@ -1,0 +1,38 @@
+{
+ "trends": {
+  "at": "2026-10-14T14:48:35.975Z",
+  "ok": true,
+  "info": {
+   "read": 10,
+   "today": 11
+  }
+ },
+ "youtube": {
+  "at": "2026-10-14T14:13:55.371Z",
+  "ok": true,
+  "info": {
+   "videos": 1114,
+   "channels": 760,
+   "used": {
+    "search": 34,
+    "units": 48
+   },
+   "failedSearches": 0
+  }
+ },
+ "famous": {
+  "at": "2026-10-14T14:13:59.651Z",
+  "ok": true,
+  "info": {
+   "retrieved": "2026-10-14T14:13:55.372Z",
+   "source": "Wikipedia (CC BY-SA 4.0)"
+  }
+ },
+ "learn": {
+  "at": "2026-10-14T14:14:13.633Z",
+  "ok": true,
+  "info": {
+   "updated": "2026-10-14T14:14:13.619Z"
+  }
+ }
+}
