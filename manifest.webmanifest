@@ -1,0 +1,23 @@
+{
+  "name": "Mr News — สมุดครีเอเตอร์",
+  "short_name": "Mr News",
+  "description": "สมุดครีเอเตอร์ของ Win: คนไทย-ลาวดูอะไรวันนี้, ไอเดียประจำวัน, บทเรียนทำคลิปคนจริงและคลิป AI, สมุดโน้ต",
+  "lang": "th",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f1ea",
+  "theme_color": "#b8431a",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Mr News", "url": "./#/news", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Mr Idea", "url": "./#/idea", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "สมุดโน้ต", "url": "./#/notes", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
+  ]
+}

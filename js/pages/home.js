@@ -4,6 +4,7 @@ import { tryJSON } from "../data.js";
 import { CHAPTERS, chapterProgress } from "../book.js";
 import { THEME_BY_ID } from "../shared/themes.js";
 import { allNotes } from "../notes-store.js";
+import { installState, askInstall, onInstallChange, isIOS } from "../pwa.js";
 
 export async function render(main) {
   const [latest, ideas] = await Promise.all([tryJSON("data/latest.json"), tryJSON("data/ideas.json")]);
@@ -15,6 +16,8 @@ export async function render(main) {
     h("h1", {}, "สมุดครีเอเตอร์ของ Win"),
     h("p", { style: { maxWidth: "62ch", color: "var(--ink-2)" } }, "หนังสือที่อัปเดตตัวเองทุกวัน: ดูว่าคนไทย-ลาวดูอะไร (Mr News) → คิดไอเดียของเราเอง (Mr Idea) → เรียนทำคลิปทั้งแบบคนจริงและ AI → จดทุกอย่างในสมุด"),
     h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/news" }, "📰 เปิด Mr News วันนี้"), h("a", { class: "btn", href: "#/idea" }, "💡 ไอเดียวันนี้"))));
+
+  main.append(installCard());
 
   if (latest) {
     const c = latest.creator;
@@ -48,6 +51,29 @@ export async function render(main) {
       h("li", {}, h("b", {}, "เลื่อนดู Reels / Shorts / TikTok ด้วยเน็ตมือถือ (3 นาที)"), "ดูว่าคลิปไหนทำให้เราหยุดดู แล้วจดว่า \"ทำไม\" ลงสมุด"),
       h("li", {}, h("b", {}, "ถ่ายท่อนสั้นๆ ชีวิตจริง (1 นาที)"), "3-5 ท่อนต่อวัน แนวตั้ง นอกที่ทำงาน ไม่ให้เห็นบัตรหรือเอกสาร"))),
     h("p", { class: "note" }, "วันหยุด: เลือก 3 ไอเดียจากสมุด → เขียนบท → ถ่าย → ตัดต่อ → ให้ AI ตรวจ → โพสต์ (ดูบท \"ทำคลิปคนจริง\")")));
+}
+
+// "Install as an app": a real button where the browser offers it (Android Chrome / Edge / Samsung),
+// otherwise the steps for the phone's own menu (iPhone Safari, or when the offer has not come yet).
+function installCard() {
+  const box = h("div", { class: "section" });
+  const draw = () => {
+    const st = installState();
+    if (st === "app") return box.replaceChildren();
+    if (st === "installed") return box.replaceChildren(h("div", { class: "tip-box" }, "✅ ติดตั้งแล้ว — เปิดได้จากไอคอน MN บนหน้าจอ"));
+    const steps = isIOS()
+      ? h("ol", { class: "note", style: { margin: "6px 0 0" } }, h("li", {}, "เปิดหน้านี้ใน Safari"), h("li", {}, "กดปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่าง"), h("li", {}, "เลือก \"เพิ่มไปยังหน้าจอโฮม\" → กด \"เพิ่ม\""))
+      : h("ol", { class: "note", style: { margin: "6px 0 0" } }, h("li", {}, "เปิดหน้านี้ใน Chrome"), h("li", {}, "กดเมนู ⋮ มุมขวาบน"), h("li", {}, "เลือก \"ติดตั้งแอป\" (หรือ \"เพิ่มลงในหน้าจอหลัก\") → กด \"ติดตั้ง\""));
+    box.replaceChildren(h("div", { class: "card", style: { display: "grid", gridTemplateColumns: "56px 1fr", gap: "12px", alignItems: "start" } },
+      h("img", { src: "icons/icon-192.png", alt: "", width: 56, height: 56, style: { borderRadius: "12px" } }),
+      h("div", {},
+        h("b", {}, "📲 ติดตั้ง Mr News เป็นแอปบนมือถือ"),
+        h("div", { class: "note" }, "มีไอคอน MN บนหน้าจอ เปิดเต็มจอ และเปิดอ่านได้แม้เน็ตไม่ดี (ฟรี ไม่ต้องผ่าน Play Store)"),
+        st === "ready" ? h("div", { class: "row", style: { marginTop: "8px" } }, h("button", { class: "btn primary", type: "button", onclick: async () => { await askInstall(); draw(); } }, "ติดตั้งแอป")) : steps)));
+  };
+  onInstallChange(draw);
+  draw();
+  return box;
 }
 
 function chapterLink(id, icon, title, sub, p) {

@@ -95,6 +95,7 @@ export async function launch({ port = 9444 } = {}) {
       fs.writeFileSync(path.join(SHOTS, file), Buffer.from(r.data, "base64"));
     };
     page.close = () => send("Target.closeTarget", { targetId });
+    page.cdp = s; // raw DevTools command, e.g. page.cdp("Page.getInstallabilityErrors")
     return page;
   }
   async function close() {

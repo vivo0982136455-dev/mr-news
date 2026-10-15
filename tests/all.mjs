@@ -135,6 +135,28 @@ try {
   ok(await p.until(`document.querySelector(".embed iframe")`), "a lesson video loads YouTube only after the tap");
   await p.eval(`localStorage.clear(); return true;`);
   await p.close();
+
+  // ---- install as an app + use without a connection ----
+  console.log("4. install + offline");
+  const a = await browser.newPage({ width: 380, height: 820 });
+  await a.goto(BASE + "#/", 2500);
+  ok(await a.until(`navigator.serviceWorker.controller`, 15000), "the app's service worker takes control");
+  const inst = await a.cdp("Page.getInstallabilityErrors").catch((e) => ({ installabilityErrors: [{ errorId: e.message }] }));
+  ok(!inst.installabilityErrors.length, "Edge says the site can be installed as an app", JSON.stringify(inst.installabilityErrors));
+  const mf = await a.cdp("Page.getAppManifest");
+  ok(!mf.errors?.length && /"short_name": "Mr News"/.test(mf.data), "manifest read without errors", JSON.stringify(mf.errors));
+  ok(await a.eval(`return document.querySelector(".section img[src='icons/icon-192.png']") !== null;`), "cover shows the install card with the icon");
+  await sleep(6000); // the worker saves the book's files
+  server.down = true; // no signal
+  for (const r of ["", "news", "handbook", "notes"]) {
+    a.errors.length = 0;
+    await a.goto(BASE + "#/" + r, 2500);
+    const h1 = await a.eval(`return (document.querySelector("main h1") || {}).textContent || "";`);
+    ok(h1.length > 0 && !(await a.eval(`return document.querySelector("main").innerText.includes("เปิดหน้านี้ไม่ได้");`)), `offline: #/${r} still opens`, h1);
+  }
+  ok(await a.eval(`return document.documentElement.dataset.offline === "1";`), "offline: the page knows the numbers are the saved copy");
+  server.down = false;
+  await a.close();
 } finally {
   await browser.close();
   server.close();

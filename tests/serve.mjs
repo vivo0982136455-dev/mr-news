@@ -9,6 +9,7 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 
 export function serve(port = 8765) {
   const server = http.createServer((req, res) => {
+    if (server.down) return req.socket.destroy(); // tests: like a phone without signal
     let p = decodeURIComponent(req.url.split("?")[0]);
     if (p.endsWith("/")) p += "index.html";
     const file = path.join(ROOT, p);

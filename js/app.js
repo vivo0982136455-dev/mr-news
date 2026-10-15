@@ -2,6 +2,9 @@
 // light/dark choice. Each page module exports render(main, arg).
 import { h, store } from "./ui.js";
 import { CHAPTERS, chapterProgress } from "./book.js";
+import { startPwa } from "./pwa.js";
+
+startPwa();
 
 const PAGES = {
   "": () => import("./pages/home.js"),
