@@ -94,6 +94,7 @@ const BASE = `http://127.0.0.1:${PORT}/`;
 const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes"];
 const SIZES = quick ? [[380, 820]] : [[380, 820], [768, 1024], [1440, 900]];
 const THEMES_ = quick ? [false] : [false, true];
+let slowest = 0;
 
 // LAYOUT_CHECK lives in checks.mjs (shared with tests/live.mjs)
 
@@ -103,7 +104,13 @@ try {
     await page.size(w, hgt, dark);
     for (const r of ROUTES) {
       page.errors.length = 0;
-      await page.goto(BASE + "#/" + r, 1800);
+      await page.goto(BASE + "#/" + r, 300);
+      const t0 = Date.now();
+      // wait for the page itself (a fixed sleep failed on slow networks while the page still said "กำลังเปิด…");
+      // a page that never opens still fails after 15 s
+      await page.until(`document.querySelector("main h1") || document.querySelector("main").innerText.includes("เปิดหน้านี้ไม่ได้")`, 15000);
+      slowest = Math.max(slowest, Date.now() - t0 + 300);
+      await sleep(600); // charts draw after the heading
       const problems = await page.eval(LAYOUT_CHECK);
       ok(!problems.length && !page.errors.length, `${w}px ${dark ? "dark" : "light"} #/${r}`, [...problems, ...page.errors].join(" | "));
     }
@@ -207,5 +214,6 @@ try {
   await browser.close();
   server.close();
 }
+console.log(`slowest page to open: ${(slowest / 1000).toFixed(1)} s`);
 console.log(`\n${fail ? "❌" : "✅"} ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -1,12 +1,12 @@
 // Check the REAL site on GitHub Pages: node tests/live.mjs
 // Every page at phone and computer width, light and dark: no errors, nothing wider than the screen, charts drawn,
 // and the data files are fresh.
-import { launch } from "./browser.mjs";
+import { launch, sleep } from "./browser.mjs";
 import { LAYOUT_CHECK } from "./checks.mjs";
 
 const BASE = process.env.SITE || "https://vivo0982136455-dev.github.io/mr-news/";
 const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes"];
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, slowest = 0;
 const ok = (cond, name, extra = "") => { if (cond) pass++; else { fail++; console.log("  ✗ " + name + (extra ? " — " + extra : "")); } };
 
 const latest = await (await fetch(BASE + "data/latest.json", { cache: "no-store" })).json();
@@ -23,7 +23,13 @@ try {
     await page.size(w, hgt, dark);
     for (const r of ROUTES) {
       page.errors.length = 0;
-      await page.goto(BASE + "#/" + r, 3000);
+      await page.goto(BASE + "#/" + r, 300);
+      const t0 = Date.now();
+      // wait for the page itself (a fixed sleep failed on slow networks while the page still said "กำลังเปิด…");
+      // a page that never opens still fails after 15 s
+      await page.until(`document.querySelector("main h1") || document.querySelector("main").innerText.includes("เปิดหน้านี้ไม่ได้")`, 15000);
+      slowest = Math.max(slowest, Date.now() - t0 + 300);
+      await sleep(1000); // charts draw after the heading
       const problems = await page.eval(LAYOUT_CHECK);
       ok(!problems.length && !page.errors.length, `live ${w}px ${dark ? "dark" : "light"} #/${r}`, [...problems, ...page.errors].join(" | "));
     }
@@ -43,5 +49,6 @@ try {
 } finally {
   await browser.close();
 }
+console.log(`slowest page to open: ${(slowest / 1000).toFixed(1)} s`);
 console.log(`\n${fail ? "❌" : "✅"} live: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
