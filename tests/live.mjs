@@ -10,9 +10,11 @@ let pass = 0, fail = 0;
 const ok = (cond, name, extra = "") => { if (cond) pass++; else { fail++; console.log("  ✗ " + name + (extra ? " — " + extra : "")); } };
 
 const latest = await (await fetch(BASE + "data/latest.json", { cache: "no-store" })).json();
-const ageH = (Date.now() - Date.parse(latest.updated)) / 3600e3;
-console.log(`data: updated ${latest.updated} (${ageH.toFixed(1)} h ago), ${latest.creator.top.length} creator videos, measured ${latest.measured}`);
-ok(ageH < 30, "data is fresher than 30 hours", ageH.toFixed(1) + " h");
+// fresh = YouTube was READ recently ("updated" is only when the file was rebuilt, every 6 h)
+const ageH = (Date.now() - Date.parse(latest.ytAt || latest.updated)) / 3600e3;
+console.log(`data: YouTube read ${latest.ytAt} (${ageH.toFixed(1)} h ago), built ${latest.updated}, ${latest.creator.top.length} creator videos, measured ${latest.measured}`);
+ok(latest.ytAt, "latest.json says when YouTube was read");
+ok(ageH < 36, "YouTube data is fresher than 36 hours", ageH.toFixed(1) + " h");
 
 const browser = await launch({ port: 9448 });
 try {
