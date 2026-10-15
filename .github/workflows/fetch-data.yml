@@ -1,4 +1,4 @@
-# Mr News robot: every 6 hours read Google Trends Thailand; once a day (when the last read is 20+ h old) read
+# Mr News robot: every 6 hours read Google Trends Thailand; once a day in the Thai evening (19:00-23:59) read
 # YouTube Thailand + Laos with Win's key; once a week the "most followed" lists and the lesson videos; then rebuild
 # the data files the pages show and commit them. GitHub may start scheduled runs late (often 1-3 hours) - fine here.
 name: Fetch data
@@ -6,6 +6,7 @@ name: Fetch data
 on:
   schedule:
     - cron: "17 */6 * * *"   # 00:17, 06:17, 12:17, 18:17 UTC = 07:17, 13:17, 19:17, 01:17 Thai time
+    - cron: "47 14 * * *"    # 21:47 Thai time: backup for the evening YouTube read if 12:17 UTC was dropped
   workflow_dispatch:
     inputs:
       force:

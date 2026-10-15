@@ -8,7 +8,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { serve } from "./serve.mjs";
 import { launch, sleep } from "./browser.mjs";
-import { LAYOUT_CHECK } from "./checks.mjs";
+import { LAYOUT_CHECK, TOUCH_CHECK } from "./checks.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const quick = process.argv.includes("quick");
@@ -106,6 +106,16 @@ ok(s1.due === "2026-10-16" && s2.due === "2026-10-19" && s3.due === "2026-10-26"
 ok(answerQuiz("w#0", false, "2026-10-15").due === "2026-10-16" && dueQuestions("2026-10-16").includes("w#0"), "review: a wrong answer comes back tomorrow");
 delete globalThis.localStorage;
 
+// phone comfort and the robot's clock
+const { GLOSSARY } = await import(pathToFileURL(path.join(ROOT, "js/content/glossary.js")).href);
+ok(GLOSSARY.length >= 20 && GLOSSARY.every((g) => g.w && g.d && (g.href || allLessons.includes(g.lesson))), "glossary: 20+ words, each linked to a lesson or page", GLOSSARY.length);
+const { youtubeDue } = await import(pathToFileURL(path.join(ROOT, "scripts/lib/schedule.mjs")).href);
+const utc = (hhmm) => new Date("2026-10-16T" + hhmm + ":00Z");
+ok(!youtubeDue(24, utc("11:37")) && youtubeDue(24.6, utc("12:17")) && youtubeDue(27, utc("14:47")) && youtubeDue(31, utc("06:17")) && !youtubeDue(18, utc("12:17")),
+  "YouTube is read once a day in the Thai evening (19:00-23:59), or at once after 30 h without a read");
+ok(/cron: "47 14 \* \* \*"/.test(read(".github/workflows/fetch-data.yml")), "a backup run at 21:47 Thai time for the evening YouTube read");
+ok(fs.existsSync(path.join(ROOT, "data/history.json")) && json("data/history.json").days.every((d) => d.day && Object.values(d.themes).every((x) => x >= 0 && x <= 1)), "history.json: theme shares per day");
+
 // the key must never be inside the project
 ok(!fs.readdirSync(ROOT).some((f) => /key/i.test(f) && f.endsWith(".txt")), "no key file inside the project folder");
 ok(read(".gitignore").includes("youtube_key.txt"), ".gitignore guards the key file");
@@ -171,7 +181,7 @@ const PORT = 8790;
 const server = await serve(PORT);
 const browser = await launch({ port: 9447 });
 const BASE = `http://127.0.0.1:${PORT}/`;
-const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results", "ladder", "review"];
+const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results", "ladder", "review", "search"];
 const SIZES = quick ? [[380, 820]] : [[380, 820], [768, 1024], [1440, 900]];
 const THEMES_ = quick ? [false] : [false, true];
 let slowest = 0;
@@ -193,6 +203,10 @@ try {
       await sleep(600); // charts draw after the heading
       const problems = await page.eval(LAYOUT_CHECK);
       ok(!problems.length && !page.errors.length, `${w}px ${dark ? "dark" : "light"} #/${r}`, [...problems, ...page.errors].join(" | "));
+      if (w === 380 && !dark) {
+        const touch = await page.eval(TOUCH_CHECK);
+        ok(!touch.length, `380px #/${r}: every control 44 px+, no text under 13 px`, touch.join(" | "));
+      }
     }
     // the other news views
     await page.goto(BASE + "#/news", 1800);
@@ -207,10 +221,10 @@ try {
     if (w === 380 || w === 1440) await page.shot(`news-${w}-${dark ? "dark" : "light"}.png`);
     if (w === 380) {
       // the estimate labels open on a TAP and stay inside a phone screen
-      await page.eval(`window.__est = [...document.querySelectorAll(".info.est")].find((b) => b.nextElementSibling.textContent.includes("÷ ชั่วโมง")); window.__est.click(); return true;`);
+      await page.eval(`window.__est = document.querySelector(".vcard .info"); window.__est.click(); return true;`); // วัดจริง / คลิปใหม่ / ประมาณ - whichever today's data has
       await sleep(200);
       const problems = await page.eval(LAYOUT_CHECK);
-      ok(await page.eval(`return !window.__est.nextElementSibling.hidden && window.__est.nextElementSibling.textContent.includes("ยอดวิวทั้งหมด ÷ ชั่วโมง");`), `${w}px ${dark ? "dark" : "light"}: tapping "ประมาณ" shows how it is worked out`);
+      ok(await page.eval(`return !window.__est.nextElementSibling.hidden && window.__est.nextElementSibling.textContent.includes("ที่มา: YouTube");`), `${w}px ${dark ? "dark" : "light"}: tapping a number label (วัดจริง / ประมาณ) shows how it is worked out`);
       ok(!problems.length, `${w}px ${dark ? "dark" : "light"}: open explanation fits the screen`, problems.join(" | "));
       await page.shot(`news-est-${dark ? "dark" : "light"}.png`);
     }
@@ -315,9 +329,11 @@ try {
 
   await c.goto(BASE + "#/notes", 300);
   await c.until(`[...document.querySelectorAll("button")].some((b) => b.textContent.includes("สำรองเป็นไฟล์"))`, 8000);
-  const backup = await c.eval(`let blob = null; const real = URL.createObjectURL; URL.createObjectURL = (b) => { blob = b; return "blob:test"; };
-    [...document.querySelectorAll("button")].find((b) => b.textContent.includes("สำรองเป็นไฟล์")).click();
-    URL.createObjectURL = real; return blob ? JSON.parse(await blob.text()) : null;`);
+  await c.eval(`window.__blob = null; URL.createObjectURL = (b) => { window.__blob = b; return "blob:test"; };
+    Object.defineProperty(navigator, "canShare", { value: undefined, configurable: true });
+    [...document.querySelectorAll("button")].find((b) => b.textContent.includes("สำรองเป็นไฟล์")).click(); return true;`);
+  await c.until(`window.__blob`, 5000);
+  const backup = await c.eval(`return window.__blob ? JSON.parse(await window.__blob.text()) : null;`);
   ok(backup && backup.version === 2 && backup.mine?.mn_plan && backup.mine?.mn_results?.length === 2 && backup.mine?.mn_reviews?.length === 1 && backup.mine?.mn_setup,
     "the backup file carries the setup, plan, results and reviews", JSON.stringify(Object.keys(backup?.mine || {})));
   await c.eval(`localStorage.clear(); return true;`);
@@ -358,6 +374,44 @@ try {
   ok(await d.until(`document.querySelector("main").innerText.includes("ตอนนี้ขั้น 1 ฝึกมือ")`, 8000), "the เรียน page starts with the ladder");
   await d.eval(`localStorage.clear(); return true;`);
   await d.close();
+
+  // ---- phone: jump bar, folded sections, small history file, search, share, backup reminder ----
+  const e = await browser.newPage({ width: 380, height: 820 });
+  await e.goto(BASE + "#/notes", 300);
+  await e.eval(`localStorage.clear(); return true;`);
+  await e.eval(`location.hash = "#/news"; return true;`);
+  ok(await e.until(`document.querySelector("nav.jump")`, 15000), "Mr News has a ไปที่ jump bar");
+  await e.eval(`[...document.querySelectorAll("nav.jump a")].find((a) => a.textContent === "Google Trends").click(); return true;`);
+  ok(await e.until(`(() => { const r = document.getElementById("nn-trends").getBoundingClientRect(); return r.top >= 0 && r.top < 400; })()`, 5000), "the jump bar scrolls to Google Trends");
+  ok(await e.eval(`return location.hash === "#/news";`), "jumping does not change the page address");
+  ok(await e.eval(`return [...document.querySelectorAll("details.fold")].length >= 3 && [...document.querySelectorAll("details.fold")].every((d) => !d.open);`), "secondary sections (YouTube categories, hashtags, YouTube chart) are folded");
+  ok(await e.eval(`return !performance.getEntriesByType("resource").some((x) => x.name.includes("/data/days/"));`), "the news page draws its history from history.json, not the day files");
+  const newsH = await e.eval(`return document.documentElement.scrollHeight;`);
+  ok(newsH < 14000, "Mr News on a phone is much shorter than before (22,244 px in the audit)", newsH + " px");
+  // share: no share sheet in this browser -> LINE's share page
+  await e.eval(`window.__opened = null; window.open = (u) => { window.__opened = u; return null; }; Object.defineProperty(navigator, "share", { value: undefined, configurable: true });
+    [...document.querySelectorAll("button")].find((b) => b.textContent.includes("แชร์สรุปวันนี้")).click(); return true;`);
+  ok(await e.until(`window.__opened && window.__opened.startsWith("https://line.me/R/share?text=")`, 3000), "share falls back to LINE when the phone has no share sheet");
+  // search + glossary
+  await e.eval(`location.hash = "#/search"; return true;`);
+  ok(await e.until(`document.querySelectorAll(".gloss dt").length >= 20`, 8000), "search page shows the glossary (20+ words)");
+  await e.eval(`const i = document.querySelector("input[type=search]"); i.value = "ไมค์"; i.dispatchEvent(new Event("input")); return true;`);
+  ok(await e.until(`[...document.querySelectorAll(".hit")].some((a) => a.getAttribute("href") === "#/human/hu-gear")`, 3000), "searching ไมค์ finds the equipment lesson");
+  await e.eval(`const i = document.querySelector("input[type=search]"); i.value = "RPM"; i.dispatchEvent(new Event("input")); return true;`);
+  ok(await e.until(`[...document.querySelectorAll(".gloss dt")].some((d) => d.textContent === "RPM")`, 3000), "searching RPM finds the glossary word");
+  const lay = await e.eval(LAYOUT_CHECK + "");
+  ok(!lay.length, "380px: search page fits the screen", lay.join(" | "));
+  await e.shot("search-380.png");
+  // backup reminder: notes exist, never backed up -> the cover asks; backing up removes the reminder
+  await e.eval(`localStorage.setItem("mn_notes", JSON.stringify([{ id: "a1", at: new Date().toISOString(), kind: "ไอเดีย", topic: "ทดสอบ" }])); localStorage.setItem("mn_setup", JSON.stringify({ skipped: true })); location.hash = "#/"; return true;`);
+  ok(await e.until(`document.querySelector(".backup-nag")`, 8000), "the cover reminds Win to back up when nothing was ever backed up");
+  await e.eval(`URL.createObjectURL = () => "blob:test"; Object.defineProperty(navigator, "canShare", { value: undefined, configurable: true });
+    document.querySelector(".backup-nag button").click(); return true;`);
+  ok(await e.until(`localStorage.getItem("mn_last_backup") && !document.querySelector(".backup-nag")`, 5000), "backing up records the day and the reminder goes away");
+  await e.eval(`localStorage.setItem("mn_last_backup", JSON.stringify(new Date(Date.now() - 8 * 864e5).toISOString())); location.hash = "#/notes"; return true;`);
+  ok(await e.until(`document.querySelector(".backup-nag") && document.querySelector(".backup-nag").innerText.includes("8 วัน")`, 5000), "8 days after the last backup the notebook reminds again");
+  await e.eval(`localStorage.clear(); return true;`);
+  await e.close();
 
   // ---- honest time labels ----
   const t = await browser.newPage({ width: 380, height: 820 });

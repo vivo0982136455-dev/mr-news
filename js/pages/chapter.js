@@ -122,6 +122,6 @@ function checklist(items, lessonId) {
   return h("ul", { style: { listStyle: "none", padding: 0 } }, items.map((t, i) => {
     const box = h("input", { type: "checkbox", checked: !!state[i], style: { width: "20px", height: "20px", flex: "none", marginTop: "3px" } });
     box.addEventListener("change", () => { const s = store.get(key, {}); s[i] = box.checked; store.set(key, s); });
-    return h("li", {}, h("label", { style: { display: "flex", gap: "10px", alignItems: "flex-start", cursor: "pointer" } }, box, h("span", { html: md(t) })));
+    return h("li", {}, h("label", { style: { display: "flex", gap: "10px", alignItems: "flex-start", cursor: "pointer", minHeight: "44px", paddingTop: "8px" } }, box, h("span", { html: md(t) })));
   }));
 }

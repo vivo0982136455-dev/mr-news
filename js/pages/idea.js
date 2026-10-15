@@ -1,10 +1,11 @@
 // Mr Idea: today's best idea for each page, built from Mr News (themes that are big + rising) and the idea bank.
 // Ends with a ready prompt for Gemini so Win can go deeper with his own life details.
-import { h, num, pct, signedPct, dur, thDay, section, store, ytUrl, ytThumb, promptBox, mdEl, freshness, toast } from "../ui.js";
+import { h, num, pct, signedPct, dur, thDay, section, store, ytUrl, ytThumb, promptBox, mdEl, freshness, toast, fill } from "../ui.js";
 import { getJSON } from "../data.js";
 import { addNote } from "../notes-store.js";
 import { MIX, IDEAS } from "../shared/ideabank.js";
 import { addToPlan } from "../my-store.js";
+import { shareButton } from "../backup.js";
 import { STYLE_NAME, thaiDay } from "../shared/patterns.js";
 
 // ⏭ ข้าม: show the next idea of the same theme and page from the bank (resets every day)
@@ -94,7 +95,7 @@ function ideaCard(c, big) {
       const { idea, left, total } = ideaFor(c, sideKey);
       if (!idea) return box.replaceChildren();
       const script = h("textarea", { "aria-label": "แม่แบบบท" }, scriptText(idea, c));
-      box.replaceChildren(
+      fill(box,
         h("h4", {}, label),
         h("div", { class: "idea-t" }, idea.t),
         h("div", { class: "hook" }, "🎬 2 วินาทีแรก: ", idea.hook),
@@ -103,6 +104,7 @@ function ideaCard(c, big) {
         h("div", { class: "acts-row" },
           h("button", { class: "btn small", type: "button", onclick: () => addNote({ kind: "ไอเดีย", page, topic: idea.t, format: c.medianSec ? `ประมาณ ${dur(c.medianSec)} นาที` : "", source: `Mr Idea · ${c.name}`, why: idea.why, plan: idea.hook + "\n" + idea.plan.map((p, i) => `${i + 1}. ${p}`).join("\n") }) }, "📌 เก็บ"),
           h("button", { class: "btn small", type: "button", onclick: () => addToPlan({ t: idea.t, page, src: `Mr Idea · ${c.name}` }) }, "➕ ใส่แผนสัปดาห์"),
+          shareButton(() => `💡 ไอเดียคลิป: ${idea.t}\n🎬 2 วินาทีแรก: ${idea.hook}\n${idea.plan.map((p, i) => `${i + 1}. ${p}`).join("\n")}`),
           h("button", { class: "btn small", type: "button", title: `ไอเดียในหมวดนี้ของเพจนี้มี ${total} ไอเดีย`, onclick: () => { skip(`${c.theme}|${sideKey}`); toast(left > 0 ? "ไอเดียถัดไป" : "วนกลับไอเดียแรกของหมวดนี้"); draw(); } }, `⏭ ข้าม (${total} ไอเดีย)`)),
         h("details", { class: "more script-box" }, h("summary", {}, "📝 แม่แบบบท (แก้ได้ แล้วบันทึกลงสมุด)"),
           script,
@@ -130,7 +132,7 @@ function geminiSection(cards) {
   const profile = store.get("mn_profile", "");
   const pick = h("select", { class: "btn small", "aria-label": "เลือกหมวด" }, cards.map((c, i) => h("option", { value: i }, c.icon + " " + c.name)));
   const page = h("select", { class: "btn small", "aria-label": "เลือกเพจ" }, h("option", { value: "couple" }, "🧡 วันๆ One One"), h("option", { value: "ai" }, "💜 เพจ AI"));
-  const prof = h("textarea", { rows: 6, placeholder: "ข้อมูลประจำเพจ (เขียนครั้งเดียว ระบบจำไว้ในเครื่องนี้): เราสองคนเป็นยังไง นิสัยตลกๆ เรื่องที่เถียงกันบ่อย คำติดปาก ความต่างไทย-ลาวที่เจอจริง ที่ที่ไปบ่อย…", style: { width: "100%" } }, profile);
+  const prof = h("textarea", { rows: 6, placeholder: "ข้อมูลประจำเพจ (เขียนครั้งเดียว ระบบจำไว้ในเครื่องนี้): เราสองคนเป็นยังไง นิสัยตลกๆ เรื่องที่เถียงกันบ่อย คำติดปาก เรื่องที่คนลาวอย่างเราเจอในไทย คิดถึงอะไรที่บ้าน ที่ที่ไปบ่อย…", style: { width: "100%" } }, profile);
   prof.addEventListener("input", () => { store.set("mn_profile", prof.value); make(); });
   const out = h("div");
   const make = () => {
@@ -138,10 +140,10 @@ function geminiSection(cards) {
     const isAi = page.value === "ai";
     const ex = (c.examples || []).map((v, i) => `${i + 1}. "${v.t}" (+${num(v.g)} วิวใน 24 ชม.) ${ytUrl(v.id)}`).join("\n");
     const text = `ฉันเป็นครีเอเตอร์มือใหม่ในไทย คนดูเป็นคนไทยและคนลาว
-${isAi ? "เพจของฉันเป็นเพจคลิป AI ที่มีตัวละครประจำ" : "เพจของฉันชื่อ \"วันๆ One One\" เป็นคลิปชีวิตจริงของฉันกับแฟน (ไทย-ลาว) ตลก ไม่ปรุงแต่ง ถ่ายด้วยมือถือ"}
+${isAi ? "เพจของฉันเป็นเพจคลิป AI ที่มีตัวละครประจำ" : "เพจของฉันชื่อ \"วันๆ One One\" เป็นคลิปชีวิตจริงของฉันกับแฟน เราเป็นคู่รักคนลาวที่ทำงานในไทย ตลก ไม่ปรุงแต่ง ถ่ายด้วยมือถือ"}
 
 ข้อมูลประจำเพจ:
-${prof.value.trim() || "[ยังไม่ได้กรอก — เขียนนิสัย เรื่องที่เถียงกันบ่อย คำติดปาก ความต่างไทย-ลาว]"}
+${prof.value.trim() || "[ยังไม่ได้กรอก — เขียนนิสัย เรื่องที่เถียงกันบ่อย คำติดปาก เรื่องที่คนลาวอย่างเราเจอในไทย]"}
 
 วันนี้หมวด "${c.name}" ได้ ${pct(c.share)} ของวิวคลิปครีเอเตอร์ไทย (${c.count} คลิป${c.momentum != null ? `, ${signedPct(c.momentum)} เทียบกับ 7 วันก่อน` : ""}) คลิปที่ติดอันดับยาวกลางๆ ${c.medianSec ? dur(c.medianSec) + " นาที" : "-"}
 ตัวอย่างคลิปที่มาแรง (ดูลิงก์ได้):
@@ -155,7 +157,7 @@ ${ex}
 ขั้นสอง: ให้ไอเดียใหม่ 8 ข้อ แต่ละข้อมี ชื่อตอน / ประโยคแรก 2 วินาที / ตัวหนังสือบนจอ / มุกปิดท้าย / ทำไมคนไทยและคนลาวจะอิน
 ขั้นสาม: บอกว่าข้อไหนทำเป็นซีรีส์ได้ดีที่สุด
 ข้อไหนเดา ให้เขียน (เดา) กำกับ ห้ามแต่งตัวเลขที่ฉันไม่ได้ให้`;
-    out.replaceChildren(promptBox(text));
+    fill(out, promptBox(text));
   };
   pick.addEventListener("change", make);
   page.addEventListener("change", make);

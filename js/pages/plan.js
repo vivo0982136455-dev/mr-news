@@ -1,7 +1,7 @@
 // แผนสัปดาห์นี้: up to 3 ideas (from Mr Idea, the notebook or typed in), each ticked ถ่ายแล้ว → ตัดแล้ว → โพสต์แล้ว.
 // A streak counts weeks with every planned clip posted; a missed week uses one of 2 freezes - no blame, and a
 // celebration the moment the week is done. Kept in this browser only.
-import { h, toast, thDay } from "../ui.js";
+import { h, toast, thDay, fill } from "../ui.js";
 import { allNotes } from "../notes-store.js";
 import { weekItems, addToPlan, setStep, removeFromPlan, weekDone, myStreak, thisWeek, STEPS, PLAN_MAX, FREEZES } from "../my-store.js";
 import { addDays } from "../shared/patterns.js";
@@ -11,7 +11,7 @@ export async function render(main) {
   main.append(h("div", { class: "page-head" },
     h("h1", {}, "🗓️ แผนสัปดาห์นี้"),
     h("p", {}, `เลือกไม่เกิน ${PLAN_MAX} ไอเดีย แล้วติ๊กทีละขั้น: ถ่ายแล้ว → ตัดแล้ว → โพสต์แล้ว แผนเล็กที่ทำเสร็จ ดีกว่าแผนใหญ่ที่ไม่ได้ทำ`)), box);
-  const draw = () => box.replaceChildren(...view(draw));
+  const draw = () => fill(box, ...view(draw));
   draw();
 }
 

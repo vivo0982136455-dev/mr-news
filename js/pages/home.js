@@ -1,6 +1,6 @@
 // The cover: "เริ่มที่นี่" the first time, then "วันนี้" (3 clips that did far better than their channel's usual in
 // Win's themes, 1 idea, 1 small task, this week's plan), today's 3 numbers, the chapters, the 10-minute routine.
-import { h, pct, dur, thDay, freshness, info, EST_TEXT, videoCard, store, toast } from "../ui.js";
+import { h, pct, dur, thDay, freshness, info, EST_TEXT, videoCard, store, toast, fill } from "../ui.js";
 import { tryJSON } from "../data.js";
 import { CHAPTERS, chapterProgress } from "../book.js";
 import { THEME_BY_ID, isShort } from "../shared/themes.js";
@@ -10,6 +10,7 @@ import { getSetup, weekItems, myStreak, addToPlan, todayDone, setTodayDone, STEP
 import { stageOf } from "../content/ladder.js";
 import { newBadges } from "./ladder.js";
 import { setupForm } from "./start.js";
+import { backupNag, shareButton } from "../backup.js";
 
 const redraw = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
 
@@ -25,6 +26,8 @@ export async function render(main) {
     h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/news" }, "📰 เปิด Mr News วันนี้"), h("a", { class: "btn", href: "#/idea" }, "💡 ไอเดียวันนี้"))));
 
   newBadges(); // a badge earned elsewhere (plan, results, review) is celebrated here once
+  const nag = backupNag(redraw);
+  if (nag) main.append(nag);
   const setup = getSetup();
   if (!setup) main.append(h("div", { class: "section" }, h("h2", {}, "👋 เริ่มที่นี่ ", h("small", {}, "ครั้งแรกเท่านั้น · ข้ามได้ทุกข้อ")), setupForm(redraw)));
   else main.append(todayCard(setup, latest, ideas));
@@ -76,11 +79,11 @@ function installCard() {
   const draw = () => {
     const st = installState();
     if (st === "app") return box.replaceChildren();
-    if (st === "installed") return box.replaceChildren(h("div", { class: "tip-box" }, "✅ ติดตั้งแล้ว — เปิดได้จากไอคอน MN บนหน้าจอ"));
+    if (st === "installed") return fill(box, h("div", { class: "tip-box" }, "✅ ติดตั้งแล้ว — เปิดได้จากไอคอน MN บนหน้าจอ"));
     const steps = isIOS()
       ? h("ol", { class: "note", style: { margin: "6px 0 0" } }, h("li", {}, "เปิดหน้านี้ใน Safari"), h("li", {}, "กดปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่าง"), h("li", {}, "เลือก \"เพิ่มไปยังหน้าจอโฮม\" → กด \"เพิ่ม\""))
       : h("ol", { class: "note", style: { margin: "6px 0 0" } }, h("li", {}, "เปิดหน้านี้ใน Chrome"), h("li", {}, "กดเมนู ⋮ มุมขวาบน"), h("li", {}, "เลือก \"ติดตั้งแอป\" (หรือ \"เพิ่มลงในหน้าจอหลัก\") → กด \"ติดตั้ง\""));
-    box.replaceChildren(h("div", { class: "card", style: { display: "grid", gridTemplateColumns: "56px 1fr", gap: "12px", alignItems: "start" } },
+    fill(box, h("div", { class: "card", style: { display: "grid", gridTemplateColumns: "56px 1fr", gap: "12px", alignItems: "start" } },
       h("img", { src: "icons/icon-192.png", alt: "", width: 56, height: 56, style: { borderRadius: "12px" } }),
       h("div", {},
         h("b", {}, "📲 ติดตั้ง Mr News เป็นแอปบนมือถือ"),
@@ -139,7 +142,8 @@ function todayCard(setup, latest, ideas) {
       h("div", { class: "idea-t" }, idea.t), h("div", { class: "hook" }, "🎬 2 วินาทีแรก: ", idea.hook),
       h("div", { class: "row", style: { marginTop: "8px" } },
         h("button", { class: "btn small", type: "button", onclick: () => { if (addToPlan({ t: idea.t, page: "วันๆ One One", src: `Mr Idea · ${card.name}` })) redraw(); } }, "➕ ใส่แผนสัปดาห์"),
-        h("a", { class: "btn small", href: "#/idea" }, "ดูไอเดียทั้งหมด"))) : null,
+        h("a", { class: "btn small", href: "#/idea" }, "ดูไอเดียทั้งหมด"),
+        shareButton(() => `💡 ไอเดียคลิปวันนี้: ${idea.t}\n🎬 ${idea.hook}`))) : null,
     clips.length ? h("div", {},
       h("h3", {}, "3 คลิปที่ได้วิวเกินปกติของช่องตัวเอง ", h("small", { class: "note" }, themes.size ? "ในหมวดที่ Win เลือก" : "ทุกหมวด")),
       h("div", { class: "vlist" }, clips.map((v, i) => videoCard(v, i + 1, { onSave: (x) => noteFromVideo(x), why: true, showGain: false })))) : null);

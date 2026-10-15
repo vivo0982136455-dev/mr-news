@@ -29,7 +29,7 @@
   --grid: #e1e0d9;
   --axis: #c3c2b7;
   --radius: 14px;
-  --fs-xs: 0.75rem;
+  --fs-xs: 0.8125rem;      /* 13 px: the smallest Thai text (tone marks and vowels above and below need room) */
   --fs-sm: 0.85rem;
   --fs: 1rem;
   --font: "IBM Plex Sans Thai", "Noto Sans Lao", "Leelawadee UI", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -375,3 +375,49 @@ details.more[open] > summary::before { content: "▾ "; }
 .badge.got { border-style: solid; border-color: var(--brand); }
 .badge.got .ico { filter: none; opacity: 1; }
 .badge b { display: block; font-size: var(--fs-sm); overflow-wrap: anywhere; }
+
+/* ---------------------------------------------------------------- phone comfort (group E, Oct 2026)
+   Every control is at least 44 px tall (the common touch-target guideline); inline links inside running text
+   are the only exception (WCAG 2.5.8). The smallest text is 13 px. */
+.btn, .btn.small, .icon-btn, .seg button, .chips button, .toc a, .chip-link, .info, .opt, select.btn,
+details.more > summary, .stage summary, .card > details > summary, .bottom a, .side nav a { min-height: 44px; }
+.btn.small { padding: 6px 12px; }
+.info { display: inline-flex; align-items: center; padding: 6px 12px; }
+.toc a, .chip-link, .chips button { display: inline-flex; align-items: center; }
+details.more > summary, .stage summary { display: flex; align-items: center; }
+.bottom a { font-size: 0.8125rem; justify-content: center; }
+.vcard .rank, .vcard .len { font-size: 0.8125rem; }
+.vcard .t { min-height: 44px; }
+.chart text { font-size: 13px; }
+
+/* Mr News: "ไปที่" jump bar under the top bar (phones); sections land below it */
+.jump { position: sticky; top: 57px; z-index: 6; display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 8px; margin: 0 0 6px; background: var(--bg); scrollbar-width: none; }
+.jump span { flex: none; align-self: center; font-size: var(--fs-sm); color: var(--muted); }
+.jump a { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 999px; background: var(--surface); color: var(--ink-2); text-decoration: none; font-size: var(--fs-sm); }
+.section[id] { scroll-margin-top: 120px; }
+@media (min-width: 960px) { .jump { top: 0; } .section[id] { scroll-margin-top: 70px; } }
+details.fold { margin-top: 14px; }
+details.fold > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 4px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-weight: 600; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::after { content: "▾"; color: var(--muted); }
+details.fold[open] > summary::after { content: "▴"; }
+details.fold > summary small { font-weight: 400; color: var(--muted); font-size: var(--fs-sm); margin-left: 6px; }
+
+/* share, search, glossary, backup reminder */
+.share-btn { white-space: nowrap; }
+.search-box { width: 100%; min-height: 48px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); border-radius: 12px; padding: 8px 14px; font-size: 16px; }
+.hits { display: grid; gap: 8px; margin-top: 10px; }
+.hit { display: block; text-decoration: none; color: inherit; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); min-height: 44px; }
+.hit b { color: var(--link); }
+.hit mark { background: var(--warn-bg); color: var(--warn-ink); border-radius: 3px; padding: 0 2px; }
+.gloss dt { font-weight: 700; margin-top: 10px; }
+.gloss dd { margin: 2px 0 0; color: var(--ink-2); }
+.backup-nag { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+
+.top .logo { min-height: 44px; }
+.icon-btn { min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.form input, .form select { min-height: 44px; }
+main summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.toggle { min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--brand); }
+.trend-list a, table.data td a { display: inline-flex; align-items: center; min-height: 44px; }

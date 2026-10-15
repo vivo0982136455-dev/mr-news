@@ -1,6 +1,6 @@
 // One multiple-choice question (end of a lesson, or the review page). The options are shuffled the same way every
 // time for the same question, so the right answer is not always first. Answering schedules the next review.
-import { h } from "./ui.js";
+import { h, fill } from "./ui.js";
 import { answerQuiz, REVIEW_DAYS } from "./my-store.js";
 
 function seeded(str) {
@@ -17,7 +17,7 @@ export function order(qid, n) {
 export function questionCard(qid, item, { onDone } = {}) {
   const box = h("div", { class: "quiz-q", "data-qid": qid });
   const draw = (picked, after) => {
-    box.replaceChildren(
+    fill(box,
       h("div", { class: "qq" }, item.q),
       h("div", { class: "opts", role: "group", "aria-label": item.q }, order(qid, item.a.length).map((i) => h("button", {
         type: "button", class: "opt" + (picked == null ? "" : i === 0 ? " right" : i === picked ? " wrong" : ""), disabled: picked != null,

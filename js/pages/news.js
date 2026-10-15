@@ -1,9 +1,10 @@
 // Mr News: what Thai (and Lao) people watch - today, this month, this year. Data: data/latest.json + the history files.
-import { h, num, pct, signedPct, dur, thDay, thMonth, seg, tile, section, videoCard, store, freshness, info, estBadge, measuredShare, EST_TEXT, X_TEXT, toast, copy } from "../ui.js";
+import { h, num, pct, signedPct, dur, thDay, thMonth, seg, tile, section, fold, jumpBar, withId, videoCard, store, freshness, info, estBadge, measuredShare, EST_TEXT, X_TEXT, toast, copy, fill } from "../ui.js";
 import { hbars, stack, columns, lines, SERIES } from "../charts.js";
 import { getJSON, tryJSON } from "../data.js";
 import { THEME_BY_ID, CATEGORY, isCreatorVideo, isShort, MEDIA_CHANNEL } from "../shared/themes.js";
 import { noteFromVideo } from "../notes-store.js";
+import { shareButton } from "../backup.js";
 
 // a day / month row: [id, gain, title, channel, category, seconds, themes, measured, ×N, q] (×N and q since 15 Oct 2026)
 const rowToVideo = (r) => ({ id: r[0], g: r[1], t: r[2], cn: r[3], cat: r[4], d: r[5], themes: (r[6] || "").split(" ").filter(Boolean), m: r[7], x: r[8] ?? null, q: r[9] });
@@ -29,16 +30,16 @@ export async function render(main) {
   main.append(controls, body);
 
   const draw = async () => {
-    controls.replaceChildren(
+    fill(controls,
       seg([["day", "วันนี้"], ["month", "รายเดือน"], ["year", "รายปี"]], st.period, (v) => { st.period = v; store.set("mn_news_period", v); draw(); }, "ช่วงเวลา"),
       seg([["creator", "ครีเอเตอร์"], ["all", "ทั้งหมด"], ["lao", "ลาว"]], st.view, (v) => { st.view = v; st.theme = null; store.set("mn_news_view", v); draw(); }, "มุมมอง"));
-    body.replaceChildren(h("div", { class: "loading" }, "กำลังโหลด…"));
+    fill(body, h("div", { class: "loading" }, "กำลังโหลด…"));
     try {
-      if (st.view === "lao") body.replaceChildren(...laoView(latest));
-      else if (st.period === "day") body.replaceChildren(...await dayView(latest, index, st, draw));
-      else body.replaceChildren(...await periodView(st.period, index, st));
+      if (st.view === "lao") fill(body, ...laoView(latest));
+      else if (st.period === "day") fill(body, ...await dayView(latest, index, st, draw));
+      else fill(body, ...await periodView(st.period, index, st));
     } catch (e) {
-      body.replaceChildren(h("div", { class: "card" }, "โหลดข้อมูลช่วงนี้ไม่ได้: ", String(e.message)));
+      fill(body, h("div", { class: "card" }, "โหลดข้อมูลช่วงนี้ไม่ได้: ", String(e.message)));
     }
   };
   await draw();
@@ -57,6 +58,7 @@ async function dayView(latest, index, st, redraw) {
     out.push(h("div", { class: "row", style: { marginBottom: "10px" } }, h("span", { class: "note" }, "ดูวันย้อนหลัง:"), sel));
   }
   if (st.day !== "latest") return [...out, ...(await pastDay(st.day, st))];
+  out.push(jumpBar([["nn-themes", "หมวด"], ["nn-top", "อันดับ"], ["nn-fresh", "คลิปใหม่"], ["nn-channels", "ช่อง"], ["nn-trends", "Google Trends"], ["nn-history", "ขึ้น-ลง"]]));
 
   const v = st.view === "all" ? latest.all : latest.creator;
   const top = v.top;
@@ -82,10 +84,11 @@ async function dayView(latest, index, st, redraw) {
     h("p", { style: { margin: 0 } }, rising && rising.mom > 0.05
       ? `หมวดที่ขึ้นแรงที่สุดเมื่อเทียบกับ 7 วันก่อน: ${themeOf(rising.id).icon} ${themeOf(rising.id).name} (${signedPct(rising.mom)})`
       : `การเทียบว่าหมวดไหน "ขึ้น" หรือ "ลง" จะเริ่มแสดงเมื่อเก็บข้อมูลครบ 7 วัน (ตอนนี้มี ${nDays} วัน) — เทียบเร็วกว่านี้ตัวเลขจะดูแม่นแต่ไม่มีความหมาย`),
-    est ? h("p", { class: "note", style: { margin: "6px 0 0" } }, "ข้อควรรู้: วันนี้วิว 24 ชม. ส่วนใหญ่เป็นค่า “ประมาณ” จากอายุคลิป ระบบจะวัดซ้ำและได้ค่าจริงตั้งแต่รอบถัดไป (ประมาณ 24 ชม. หลังเจอคลิปครั้งแรก)") : null));
+    est ? h("p", { class: "note", style: { margin: "6px 0 0" } }, "ข้อควรรู้: วันนี้วิว 24 ชม. ส่วนใหญ่เป็นค่า “ประมาณ” จากอายุคลิป ระบบจะวัดซ้ำและได้ค่าจริงตั้งแต่รอบถัดไป (ประมาณ 24 ชม. หลังเจอคลิปครั้งแรก)") : null,
+    h("div", { class: "row", style: { marginTop: "8px" } }, shareButton(() => `📰 Mr News ${thDay(latest.day)}: ในคลิปที่ระบบเจอ หมวด “${themeOf(best.id).name}” ได้วิวมากที่สุด ${pct(best.share)}`, "📤 แชร์สรุปวันนี้"))));
 
   // themes
-  out.push(section("หมวดไหนได้วิวมากที่สุด", "% ของวิว 24 ชม. ในคลิปที่ระบบเจอ (คลิปหนึ่งอยู่ได้หลายหมวด)" + (est ? " · ประมาณ" : ""),
+  out.push(withId(section("หมวดไหนได้วิวมากที่สุด", "% ของวิว 24 ชม. ในคลิปที่ระบบเจอ (คลิปหนึ่งอยู่ได้หลายหมวด)" + (est ? " · ประมาณ" : ""),
     v.none != null ? h("p", { class: "note" }, `ไม่เข้าหมวดไหนเลย ${pct(v.none)} ของวิว — ระบบอ่านหมวดจากคำในชื่อคลิป จึงไม่รู้ว่าคลิปที่ชื่อไม่บอกเรื่องนั้นเกี่ยวกับอะไร (ทดสอบกับชื่อคลิปจริง 60 ชื่อ: หาหมวดถูก 86%)`) : null,
     h("div", { class: "card" }, hbars(v.themes.slice(0, 14).map((t) => ({
       label: themeOf(t.id).icon + " " + themeOf(t.id).name,
@@ -93,7 +96,7 @@ async function dayView(latest, index, st, redraw) {
       display: pct(t.share),
       note: t.prev != null ? signedPct(t.share / t.prev - 1) + " จาก 7 วัน" : `${t.n} คลิป`,
       tip: `${themeOf(t.id).name}\n${num(t.v)} วิว จาก ${t.n} คลิป\n${pct(t.share, 1)} ของวิวทั้งหมด`,
-    })), { head: ["หมวด", "% ของวิว"], color: "var(--s1)" }))));
+    })), { head: ["หมวด", "% ของวิว"], color: "var(--s1)" }))), "nn-themes"));
 
   // format + posting hour
   const fmt = v.formats;
@@ -105,11 +108,11 @@ async function dayView(latest, index, st, redraw) {
       columns(v.hours.map((x) => ({ label: String(x.h), value: x.n, tip: `${String(x.h).padStart(2, "0")}:00-${String(x.h).padStart(2, "0")}:59 น.\n${x.n} คลิป · ${num(x.v)} วิว` })), { every: 3, head: ["ชั่วโมง", "จำนวนคลิป"], format: (x) => num(x) }))));
 
   // YouTube categories
-  out.push(section("หมวดของ YouTube", "เจ้าของคลิปเลือกเองตอนอัปโหลด",
+  out.push(fold("หมวดของ YouTube", "เจ้าของคลิปเลือกเองตอนอัปโหลด",
     h("div", { class: "card" }, hbars(v.cats.slice(0, 10).map((c) => ({ label: CATEGORY[c.id] || "หมวด " + c.id, value: c.share, display: pct(c.share), tip: `${CATEGORY[c.id] || c.id}\n${num(c.v)} วิว · ${c.n} คลิป` })), { head: ["หมวด YouTube", "% ของวิว"], color: "var(--s3)" }))));
 
   // the ranking, with its sort / length / sureness choices right above it
-  out.push(st.view === "all" ? topList(`Top ${top.length} คลิป วิวเพิ่มมากที่สุดใน 24 ชม.`, top, st) : rankSection(latest, st));
+  out.push(withId(st.view === "all" ? topList(`Top ${top.length} คลิป วิวเพิ่มมากที่สุดใน 24 ชม.`, top, st) : rankSection(latest, st), "nn-top"));
 
   // dubbed / spoiler / re-uploaded clips: shown apart, never as an example
   if (st.view !== "all" && latest.copies?.length) out.push(section("แยกไว้: คลิปพากย์ / สปอย / รีอัป", `${latest.counts.copies} คลิป — ดูได้ แต่อย่าเลียนแบบ`,
@@ -119,26 +122,27 @@ async function dayView(latest, index, st, redraw) {
 
   // fresh
   const fresh = (st.view === "all" ? latest.fresh || [] : latest.freshCreator || (latest.fresh || []).filter(isCreatorVideo)).slice(0, 12);
-  if (fresh.length) out.push(section("คลิปใหม่ที่แรงที่สุด", "โพสต์ไม่ถึง 24 ชม.", h("div", { class: "vlist" }, fresh.map((x, i) => videoCard(x, i + 1, { onSave: save, why: true })))));
+  if (fresh.length) out.push(withId(section("คลิปใหม่ที่แรงที่สุด", "โพสต์ไม่ถึง 24 ชม.", h("div", { class: "vlist" }, fresh.slice(0, 4).map((x, i) => videoCard(x, i + 1, { onSave: save, why: true }))),
+    fresh.length > 4 ? h("details", { class: "more" }, h("summary", {}, `ดูอีก ${fresh.length - 4} คลิป`), h("div", { class: "vlist", style: { marginTop: "8px" } }, fresh.slice(4).map((x, i) => videoCard(x, i + 5, { onSave: save, why: true })))) : null), "nn-fresh"));
 
   // hashtags
-  if (v.tags?.length) out.push(section("แฮชแท็กที่อยู่ในคลิปที่วิวเยอะ", "นับวิว 24 ชม. ของคลิปที่ใส่แท็กนั้น",
+  if (v.tags?.length) out.push(fold("แฮชแท็กที่อยู่ในคลิปที่วิวเยอะ", "นับวิว 24 ชม. ของคลิปที่ใส่แท็กนั้น",
     h("div", { class: "card" }, h("div", { class: "row" }, v.tags.slice(0, 20).map((t) => h("span", { class: "pill", title: `${t.n} คลิป` }, `${t.k} · ${num(t.v)}`))))));
 
   // channels
-  out.push(channelsSection(latest));
+  out.push(withId(channelsSection(latest), "nn-channels"));
 
   // Google Trends
-  out.push(trendsSection(latest));
+  out.push(withId(trendsSection(latest), "nn-trends"));
 
   // YouTube's own chart
   const ch = latest.charts?.TH || [];
-  if (ch.length) out.push(section("ชาร์ตของ YouTube เอง (ไทย)", "เพลง เกม และตัวอย่างหนังที่มาแรง",
+  if (ch.length) out.push(fold("ชาร์ตของ YouTube เอง (ไทย)", "เพลง เกม และตัวอย่างหนังที่มาแรง",
     h("div", { class: "card" }, h("p", { class: "note" }, "ตั้งแต่ 21 ก.ค. 2025 รายการ \"ยอดนิยม\" ของ YouTube มีแค่ เพลง หนัง และเกม จึงแยกไว้ตรงนี้ ใช้หาเพลงหรือกระแสเกม ไม่ใช่หัวข้อคลิปครีเอเตอร์"),
       h("details", { class: "more" }, h("summary", {}, `ดูทั้งหมด ${ch.length} คลิป`), h("div", { class: "vlist", style: { marginTop: "8px" } }, ch.map((x, i) => videoCard(x, i + 1, { showGain: false, onSave: save })))))));
 
   // history of themes
-  out.push(await historySection(index));
+  out.push(withId(await historySection(index), "nn-history"));
   return out;
 }
 
@@ -175,7 +179,7 @@ function rankSection(latest, st) {
     const flagLine = nFlag ? h("p", { class: "note" }, `ซ่อนไว้ ${nFlag} ช่องในเครื่องนี้ · `,
       h("button", { class: "btn small", type: "button", onclick: () => copy(Object.entries(flagged).map(([id, n]) => `${id}  ${n}`).join("\n")) }, "คัดลอกรายชื่อส่งให้ Steep"), " ",
       h("button", { class: "btn small", type: "button", onclick: () => { store.set("mn_flagged", {}); draw(); } }, "แสดงทั้งหมดอีกครั้ง")) : null;
-    box.replaceChildren(topList(title, list, st, { controls: [controls, explain], why: true, onFlag, after: flagLine }));
+    fill(box, topList(title, list, st, { controls: [controls, explain], why: true, onFlag, after: flagLine }));
   }
   draw();
   return box;
@@ -186,26 +190,26 @@ function topList(title, list, st, { controls = null, why = false, onFlag = null,
   const counts = Object.fromEntries(themeIds.map((id) => [id, list.filter((v) => v.themes.includes(id)).length]));
   themeIds.sort((a, b) => counts[b] - counts[a]);
   const listBox = h("div", { class: "vlist" });
-  let shown = 20;
+  let shown = 10; // 10 at first on a phone; "ดูเพิ่ม" adds 10 more
   const more = h("button", { class: "btn", type: "button" }, "ดูเพิ่ม");
-  const fill = () => {
+  const drawList = () => {
     const f = st.theme ? list.filter((v) => v.themes.includes(st.theme)) : list;
-    listBox.replaceChildren(...f.slice(0, shown).map((v, i) => videoCard(v, i + 1, { onSave: save, why, onFlag })));
+    fill(listBox, ...f.slice(0, shown).map((v, i) => videoCard(v, i + 1, { onSave: save, why, onFlag })));
     more.hidden = f.length <= shown;
     if (!f.length) listBox.append(h("div", { class: "empty" }, "ไม่มีคลิปในหมวดนี้"));
   };
-  more.addEventListener("click", () => { shown += 20; fill(); });
+  more.addEventListener("click", () => { shown += 10; drawList(); });
   const chips = h("div", { class: "chips", role: "group", "aria-label": "กรองตามหมวด" },
     h("button", { type: "button", "aria-pressed": String(!st.theme), onclick: (e) => pick(null, e) }, "ทุกหมวด"),
     themeIds.map((id) => h("button", { type: "button", "aria-pressed": String(st.theme === id), onclick: (e) => pick(id, e) }, `${THEME_BY_ID[id].icon} ${THEME_BY_ID[id].name} (${counts[id]})`)));
   function pick(id, e) {
     st.theme = id;
-    shown = 20;
+    shown = 10;
     for (const b of chips.children) b.setAttribute("aria-pressed", "false");
     e.currentTarget.setAttribute("aria-pressed", "true");
-    fill();
+    drawList();
   }
-  fill();
+  drawList();
   return section(title, "กด 📌 เพื่อจดคลิปที่น่าสนใจลงสมุด", controls, chips, listBox, h("div", { class: "row", style: { justifyContent: "center", marginTop: "10px" } }, more), after);
 }
 
@@ -215,45 +219,55 @@ function channelsSection(latest) {
   const tableBox = h("div");
   const fillTable = () => {
     const rows = latest.channels.bySubs.filter((c) => !hideMedia || !MEDIA_CHANNEL.test(c.t)).slice(0, 100);
-    tableBox.replaceChildren(h("div", { class: "table-wrap" }, h("table", { class: "data" },
+    fill(tableBox, h("div", { class: "table-wrap" }, h("table", { class: "data" },
       h("thead", {}, h("tr", {}, h("th", {}, "#"), h("th", {}, "ช่อง"), h("th", { class: "num" }, "ผู้ติดตาม"), h("th", { class: "num" }, "+ผู้ติดตาม/วัน"), h("th", { class: "num" }, "คลิป"))),
       h("tbody", {}, rows.map((c, i) => h("tr", {}, h("td", {}, i + 1),
         h("td", {}, h("a", { href: c.h ? `https://www.youtube.com/${c.h}` : `https://www.youtube.com/channel/${c.id}`, target: "_blank", rel: "noopener" }, c.t)),
         h("td", { class: "num" }, num(c.subs)), h("td", { class: "num" }, c.subsGain == null ? "รอวัดพรุ่งนี้" : (c.subsGain >= 0 ? "+" : "") + num(c.subsGain, { compact: false })), h("td", { class: "num" }, num(c.vids, { compact: false }))))))));
   };
-  const toggle = h("label", { class: "row note" }, h("input", { type: "checkbox", checked: true, onchange: (e) => { hideMedia = e.target.checked; fillTable(); } }), "ซ่อนช่องทีวี ข่าว ค่ายเพลง");
+  const toggle = h("label", { class: "toggle note" }, h("input", { type: "checkbox", checked: true, onchange: (e) => { hideMedia = e.target.checked; fillTable(); } }), "ซ่อนช่องทีวี ข่าว ค่ายเพลง");
   fillTable();
   return section("ช่องไทย", "จากช่องที่ระบบเจอ (ยิ่งเก็บนาน ยิ่งครบ)",
     h("div", { class: "grid g2" },
       h("div", { class: "card" }, h("h3", {}, "ช่องที่วิวมาแรงวันนี้"), h("p", { class: "sub" }, "วิว 24 ชม. รวมทุกคลิปของช่องที่ระบบติดตาม"),
         rising.length ? hbars(rising.map((c) => ({ label: c.t, value: c.g, tip: `${c.t}\n${num(c.g)} วิวใน 24 ชม.\n${num(c.subs)} ผู้ติดตาม` })), { head: ["ช่อง", "วิว 24 ชม."], color: "var(--s2)" }) : h("div", { class: "empty" }, "ยังไม่มีข้อมูล")),
-      h("div", { class: "card" }, h("h3", {}, "Top 100 ช่องไทยตามผู้ติดตาม"), toggle, tableBox)));
+      h("details", { class: "card fold-card" }, h("summary", { style: { cursor: "pointer", minHeight: "44px", fontWeight: 600 } }, "Top 100 ช่องไทยตามผู้ติดตาม (แตะเพื่อเปิดตาราง)"), toggle, tableBox)));
 }
 
 function trendsSection(latest) {
-  const list = (items) => h("ol", { style: { paddingLeft: "1.4em", margin: 0 } }, items.slice(0, 20).map((t) => h("li", {},
+  const item = (t) => h("li", {},
     h("a", { href: `https://www.google.com/search?q=${encodeURIComponent(t.q)}`, target: "_blank", rel: "noopener" }, t.q), " ",
     h("span", { class: "pill" }, num(t.n) + "+ ค้นหา"),
-    t.news?.[0] ? h("div", { class: "note" }, t.news[0]) : null)));
+    t.news?.[0] ? h("div", { class: "note" }, t.news[0]) : null);
+  // 5 at first (news and sport, not clips - secondary for a creator); the rest folded
+  const list = (items) => h("div", {},
+    h("ol", { class: "trend-list", style: { paddingLeft: "1.4em", margin: 0 } }, items.slice(0, 5).map(item)),
+    items.length > 5 ? h("details", { class: "more" }, h("summary", {}, `ดูอีก ${Math.min(20, items.length) - 5} เรื่อง`),
+      h("ol", { class: "trend-list", start: 6, style: { paddingLeft: "1.4em", margin: "6px 0 0" } }, items.slice(5, 20).map(item))) : null);
   const today = latest.trends?.today || [];
   const yest = latest.trends?.yesterday || [];
   return section("Google Trends ไทย", "คนไทยค้นอะไรใน Google (ข่าว กีฬา ดารา) — ไม่ใช่คลิป",
     h("div", { class: "grid g2" },
       h("div", { class: "card" }, h("h3", {}, "วันนี้"), today.length ? list(today) : h("div", { class: "empty" }, "ยังไม่มี")),
-      h("div", { class: "card" }, h("h3", {}, "เมื่อวาน"), yest.length ? list(yest) : h("div", { class: "empty" }, "ระบบเริ่มเก็บวันนี้ พรุ่งนี้จะมีของเมื่อวาน"))),
+      h("details", { class: "card" }, h("summary", { style: { fontWeight: 600 } }, `เมื่อวาน (${yest.length} เรื่อง)`), yest.length ? list(yest) : h("div", { class: "empty" }, "ระบบเริ่มเก็บวันนี้ พรุ่งนี้จะมีของเมื่อวาน"))),
     h("p", { class: "src" }, "ที่มา: Google Trends RSS ประเทศไทย (อ่านทุก 6 ชั่วโมง ครั้งละ 10 เรื่อง) · ลาวไม่มี: Google ไม่เปิดข้อมูลของลาว"));
 }
 
+// theme shares per day from data/history.json (one small file; it replaced loading up to 30 day files of ~56 KB)
 async function historySection(index) {
-  const days = index?.days || [];
-  if (days.length < 2) return section("หมวดขึ้น-ลงแต่ละวัน", "",
-    h("div", { class: "card" }, h("div", { class: "empty" }, `ระบบเริ่มเก็บประวัติวันที่ ${days[0] ? thDay(days[0]) : "วันนี้"} — กราฟเส้นจะขึ้นเมื่อมีข้อมูล 2 วันขึ้นไป`)));
-  const recs = (await Promise.all(days.slice(-30).map((d) => tryJSON(`data/days/${d}.json`)))).filter(Boolean);
+  const hist = await tryJSON("data/history.json");
+  let recs = hist?.days?.slice(-30);
+  if (!recs) { // an older data folder without history.json
+    const files = (await Promise.all((index?.days || []).slice(-30).map((d) => tryJSON(`data/days/${d}.json`)))).filter(Boolean);
+    recs = files.map((r) => ({ day: r.day, themes: Object.fromEntries(r.creator.themes.map((t) => [t.id, t.share])) }));
+  }
+  if (recs.length < 2) return section("หมวดขึ้น-ลงแต่ละวัน", "",
+    h("div", { class: "card" }, h("div", { class: "empty" }, `ระบบเริ่มเก็บประวัติวันที่ ${recs[0] ? thDay(recs[0].day) : "วันนี้"} — กราฟเส้นจะขึ้นเมื่อมีข้อมูล 2 วันขึ้นไป`)));
   const last = recs[recs.length - 1];
-  const ids = last.creator.themes.slice(0, 4).map((t) => t.id);
+  const ids = Object.entries(last.themes).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([id]) => id);
   const series = ids.map((id, i) => ({
     label: THEME_BY_ID[id]?.name || id, color: SERIES[i],
-    points: recs.map((r) => ({ x: r.day, y: (r.creator.themes.find((t) => t.id === id) || { share: 0 }).share })),
+    points: recs.map((r) => ({ x: r.day, y: r.themes[id] || 0 })),
   }));
   return section("หมวดขึ้น-ลงแต่ละวัน", `${recs.length} วันล่าสุด · 4 หมวดใหญ่ของวันนี้`,
     h("div", { class: "card" }, lines(series, { format: (v) => pct(v), xLabel: (x) => thDay(x).split(" ").slice(0, 2).join(" ") })));
@@ -322,7 +336,7 @@ function linksSection() {
     ["NoxInfluencer ไทย", "https://www.noxinfluencer.com/youtube-channel-rank/top-100-th-all-youtuber-sorted-by-subs-weekly", "ช่อง YouTube ไทย เรียงตาม Growth"],
     ["vidIQ ลาว", "https://vidiq.com/youtube-stats/top/country/la/", "Top 100 ช่อง YouTube ลาว"],
   ];
-  return section("เว็บที่ระบบดึงให้ไม่ได้ (กดเปิดเอง)", "ใช้เน็ตมือถือหรือเน็ตบ้าน — เน็ตบริษัทบล็อก TikTok และ YouTube",
+  return fold("เว็บที่ระบบดึงให้ไม่ได้ (กดเปิดเอง)", "ใช้เน็ตมือถือหรือเน็ตบ้าน — เน็ตบริษัทบล็อก TikTok และ YouTube",
     h("div", { class: "grid g2" }, L.map(([name, url, what]) => h("a", { class: "card", href: url, target: "_blank", rel: "noopener", style: { textDecoration: "none", color: "inherit" } },
       h("b", {}, name, " ↗"), h("div", { class: "note" }, what)))),
     h("div", { class: "card", style: { marginTop: "14px" } }, h("b", {}, "Facebook: Inspiration Hub (ในแอปเท่านั้น)"),

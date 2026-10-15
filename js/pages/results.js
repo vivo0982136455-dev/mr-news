@@ -2,7 +2,7 @@
 // the owner - no public API gives them). Each clip is compared with Win's OWN usual (the median of his last 10
 // clips on the same platform), never with other people's channels. Then the 30-minute Sunday review: best and
 // worst clip → one guess why → change one thing next week. Kept in this browser only.
-import { h, num, thDay, toast, store, info } from "../ui.js";
+import { h, num, thDay, toast, store, info, fill } from "../ui.js";
 import { PAGES_FOR } from "../notes-store.js";
 import { WHERE, getResults, saveResults, myUsual, timesMyUsual, getReviews, saveReviews, thisWeek } from "../my-store.js";
 import { thaiDay, thaiNow, addDays } from "../shared/patterns.js";
@@ -15,7 +15,7 @@ export async function render(main) {
   main.append(h("div", { class: "page-head" },
     h("h1", {}, "📈 ผลคลิปของเรา"),
     h("p", {}, "จดตัวเลขของคลิปที่ Win โพสต์ แล้วดูว่าคลิปไหน \"เกินปกติของเราเอง\" ทุกวันอาทิตย์ใช้ 30 นาทีทบทวน: คลิปดีสุด/แย่สุด → เดาเหตุผล 1 ข้อ → สัปดาห์หน้าเปลี่ยน 1 อย่าง")), box);
-  const draw = () => box.replaceChildren(...view(draw));
+  const draw = () => fill(box, ...view(draw));
   draw();
 }
 

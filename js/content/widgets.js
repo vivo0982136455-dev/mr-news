@@ -1,7 +1,7 @@
 // Interactive pieces inside lessons: money calculator, YouTube Partner Program progress, Top 100 most followed,
 // Thai channels, AI-credit reality, best AI videos. Numbers marked "ประมาณการ" come from the research report
 // (Oct 2026) and are labelled on the page.
-import { h, num, pct, dur, thDay, store, embed, seg } from "../ui.js";
+import { h, num, pct, dur, thDay, store, embed, seg, fill } from "../ui.js";
 import { hbars } from "../charts.js";
 import { tryJSON } from "../data.js";
 import { MEDIA_CHANNEL, THEME_BY_ID } from "../shared/themes.js";
@@ -25,14 +25,14 @@ export const WIDGETS = {
     const box = h("div", { class: "tip-box" }, "กำลังอ่านตัวเลขของวันนี้…");
     tryJSON("data/latest.json").then((l) => {
       const c = l?.creator;
-      if (!c) return box.replaceChildren("ยังอ่านข้อมูล Mr News ไม่ได้ — เปิดหน้า Mr News ดูตัวเลขล่าสุด");
+      if (!c) return fill(box, "ยังอ่านข้อมูล Mr News ไม่ได้ — เปิดหน้า Mr News ดูตัวเลขล่าสุด");
       const shortShare = c.formats.short.v / (c.formats.short.v + c.formats.long.v || 1);
       const rank = b.theme ? c.themes.findIndex((t) => t.id === b.theme) : -1;
       const th = b.theme && THEME_BY_ID[b.theme];
-      box.replaceChildren(h("b", {}, `Mr News วันที่ ${thDay(l.day)}: `),
+      fill(box, ...[h("b", {}, `Mr News วันที่ ${thDay(l.day)}: `),
         `ในคลิปครีเอเตอร์ต้นฉบับที่ระบบเจอ Shorts ได้วิว ${pct(shortShare)} และคลิปที่ติด Top 50 ยาวกลางๆ ${dur(c.formats.medianTop50)} นาที`,
         th ? (rank >= 0 ? ` · หมวด ${th.icon} ${th.name} อยู่อันดับ ${rank + 1} (${pct(c.themes[rank].share)} ของวิว)` : ` · วันนี้หมวด ${th.name} ไม่ติดอันดับ`) : null,
-        h("div", { class: "note" }, "ตัวเลขเปลี่ยนทุกวัน และมาจากคลิปที่ระบบค้นเจอ ไม่ใช่ทั้งประเทศ — ใช้ดูทิศทาง ไม่ใช่กฎตายตัว"));
+        h("div", { class: "note" }, "ตัวเลขเปลี่ยนทุกวัน และมาจากคลิปที่ระบบค้นเจอ ไม่ใช่ทั้งประเทศ — ใช้ดูทิศทาง ไม่ใช่กฎตายตัว")].filter(Boolean));
     });
     return box;
   },
@@ -44,7 +44,7 @@ export const WIDGETS = {
     const calc = () => {
       const s = +subs.value || 0, hr = +hours.value || 0, sv = +shorts.value || 0, up = +uploads.value || 0;
       const after2027 = Date.now() >= Date.parse("2027-02-01");
-      out.replaceChildren(
+      fill(out,
         h("h4", { style: { margin: "10px 0 2px" } }, "ระดับต้น (Super Thanks, สมาชิกช่อง — ยังไม่มีค่าโฆษณา)"),
         progress("ผู้ติดตาม", s, 500, "คน"), progress("คลิปสาธารณะใน 90 วัน", up, 3, "คลิป"),
         h("div", { class: "note" }, "และอย่างใดอย่างหนึ่ง:"), progress("ชั่วโมงดูคลิปยาว (12 เดือน)", hr, 3000, "ชม."), progress("วิว Shorts (90 วัน)", sv, 3e6, "วิว"),
@@ -79,7 +79,7 @@ export const WIDGETS = {
       const v = +views.value || 0, f = +fx.value || 33;
       const [lo, mid, hi] = RATE[kind];
       const baht = (r) => (v / 1000) * r * f;
-      out.replaceChildren(
+      fill(out,
         h("div", { class: "grid g3", style: { marginTop: "10px" } },
           h("div", { class: "tile" }, h("div", { class: "label" }, "ต่ำ"), h("div", { class: "value" }, num(baht(lo)) + " ฿")),
           h("div", { class: "tile", style: { borderColor: "var(--brand)" } }, h("div", { class: "label" }, "กลาง"), h("div", { class: "value" }, num(baht(mid)) + " ฿")),
@@ -117,7 +117,7 @@ export const WIDGETS = {
       const draw = () => {
         const list = f[which] || [];
         const unit = which === "youtube" ? "ผู้ติดตาม (ล้าน)" : "ผู้ติดตาม (ล้าน)";
-        body.replaceChildren(
+        fill(body,
           hbars(list.slice(0, 20).map((x, i) => ({ label: `${i + 1}. ${x.name}`, value: x.m, display: num(x.m * 1e6), tip: `${x.name}\n${num(x.m * 1e6)} ผู้ติดตาม${x.country ? "\n" + x.country : ""}${x.cat ? "\n" + x.cat : ""}${x.joined ? "\nเริ่มเมื่อ " + x.joined : ""}` })), { head: ["อันดับ", unit], color: which === "youtube" ? "var(--s8)" : which === "tiktok" ? "var(--s5)" : "var(--s1)" }),
           h("details", { class: "more" }, h("summary", {}, `ดูครบ ${list.length} อันดับ`), h("div", { class: "table-wrap" }, h("table", { class: "data" },
             h("thead", {}, h("tr", {}, h("th", {}, "#"), h("th", {}, "ชื่อ"), h("th", { class: "num" }, "ผู้ติดตาม"), h("th", {}, "ประเทศ"), h("th", {}, which === "youtube" ? "เริ่มเมื่อ" : "เกี่ยวกับ"))),

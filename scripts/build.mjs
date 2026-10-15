@@ -20,6 +20,7 @@ const LIST = 200;         // rows the page can filter (Shorts / long, measured o
 const KEEP_IN_DAY = 200;
 const X_MIN_BASE = 50;    // a channel that usually gets under 50 views gives no meaningful ×N
 const X_MIN_VIEWS = 10000; // the ×N list starts at 10,000 views
+const HISTORY_DAYS = 90;   // data/history.json keeps the theme shares of the last 90 days
 export const COMPARE_DAYS = 7; // "▲ from 7 days" needs 7 real days before it is shown
 
 // views gained in the last 24 h for one followed video
@@ -251,6 +252,10 @@ export function build() {
 
   // the list of periods the page can open
   writeJson("index.json", { days: ls("days"), months: ls("months"), years: ls("years"), updated: nowIso });
+
+  // the theme history the news page draws: one small file instead of up to 30 day files (~56 KB each)
+  const histDays = ls("days").slice(-HISTORY_DAYS).map((d) => JSON.parse(fs.readFileSync(path.join(DATA, "days", d + ".json"), "utf8")));
+  writeJson("history.json", { days: histDays.map((d) => ({ day: d.day, themes: Object.fromEntries(d.creator.themes.map((t) => [t.id, Math.round(t.share * 1e4) / 1e4])) })) });
 
   const ideas = buildIdeas(latest, past);
   writeJson("ideas.json", ideas);

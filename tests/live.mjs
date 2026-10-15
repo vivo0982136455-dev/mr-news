@@ -5,7 +5,7 @@ import { launch, sleep } from "./browser.mjs";
 import { LAYOUT_CHECK } from "./checks.mjs";
 
 const BASE = process.env.SITE || "https://vivo0982136455-dev.github.io/mr-news/";
-const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results", "ladder", "review"];
+const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results", "ladder", "review", "search"];
 let pass = 0, fail = 0, slowest = 0;
 const ok = (cond, name, extra = "") => { if (cond) pass++; else { fail++; console.log("  ✗ " + name + (extra ? " — " + extra : "")); } };
 

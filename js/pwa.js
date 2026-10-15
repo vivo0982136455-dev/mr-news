@@ -36,8 +36,9 @@ export async function askInstall() {
 const BOOK_FILES = ["js/pages/chapter.js", "js/pages/learn.js", "js/pages/notes.js", "js/pages/idea.js", "js/pages/news.js", "js/pages/home.js",
   "js/pages/start.js", "js/pages/plan.js", "js/pages/results.js", "js/my-store.js", "js/shared/patterns.js",
   "js/pages/ladder.js", "js/pages/review.js", "js/quiz-ui.js", "js/content/quiz.js", "js/content/ladder.js",
+  "js/pages/search.js", "js/content/glossary.js", "js/backup.js",
   "js/content/handbook.js", "js/content/human.js", "js/content/ai.js", "js/content/figures.js", "js/content/widgets.js",
-  "data/latest.json", "data/ideas.json", "data/index.json", "data/famous.json", "data/learn.json", "manifest.webmanifest", "icons/icon-192.png"];
+  "data/latest.json", "data/ideas.json", "data/index.json", "data/history.json", "data/famous.json", "data/learn.json", "manifest.webmanifest", "icons/icon-192.png"];
 function loadedFiles() {
   const base = new URL("./", location.href).href;
   const list = performance.getEntriesByType("resource").map((e) => e.name);

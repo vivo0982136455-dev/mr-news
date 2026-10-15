@@ -2,7 +2,7 @@
 // Rules from the dataviz method: bars <= 24 px thick with a 4 px rounded data end and a square baseline,
 // 2 px lines, hairline grid, values at the bar tip, text in ink colours (never the series colour),
 // a legend for 2+ series, a hover/tap tooltip on every mark, and a table view for every chart.
-// Every chart is drawn at the REAL width of its box (redrawn when the box changes size), so text stays 12 px
+// Every chart is drawn at the REAL width of its box (redrawn when the box changes size), so text stays 13 px
 // on a phone and on a computer instead of being scaled down.
 import { h, num } from "./ui.js";
 
@@ -48,7 +48,7 @@ const MARKS = /[ัิ-ฺ็-๎ັິ-ຼ່-ໍ]/g;
 // an emoji (even a joined one like 👨‍👩‍👧) is drawn as ONE wide picture = about 2 letters
 const EMOJI = /\p{Extended_Pictographic}️?(‍\p{Extended_Pictographic}️?)*/gu;
 const glyphs = (t) => Array.from(String(t).replace(EMOJI, "WW").replace(MARKS, "")).length;
-const textW = (t, size = 12) => glyphs(t) * size * 0.58;
+const textW = (t, size = 13) => glyphs(t) * size * 0.58;
 const cut = (t, maxW, size) => {
   const max = Math.max(4, Math.floor(maxW / (size * 0.58)));
   if (glyphs(t) <= max) return t;
@@ -98,10 +98,10 @@ const svgRoot = (width, height, label) => s("svg", { viewBox: `0 0 ${width} ${he
 export function hbars(items, { color = "var(--s1)", format = (v) => num(v), head = ["", "ค่า"], max } = {}) {
   const draw = (width) => {
     const rowH = 30, bar = 18, top = 4;
-    const valTextW = (i) => textW(i.display ?? format(i.value), 12) * 1.2;
+    const valTextW = (i) => textW(i.display ?? format(i.value), 13) * 1.2;
     const showNotes = width >= 420; // on a phone the note goes to the tooltip / table only
-    const valW = Math.max(...items.map((i) => valTextW(i) + (showNotes && i.note ? textW(i.note, 11) + 12 : 0)), 30) + 10;
-    const labelW = Math.min(Math.max(...items.map((i) => textW(i.label, 12.5)), 40) + 16, width * 0.42, 280);
+    const valW = Math.max(...items.map((i) => valTextW(i) + (showNotes && i.note ? textW(i.note, 13) + 12 : 0)), 30) + 10;
+    const labelW = Math.min(Math.max(...items.map((i) => textW(i.label, 13)), 40) + 16, width * 0.42, 280);
     const plotW = Math.max(40, width - labelW - valW);
     const m = max ?? Math.max(...items.map((i) => i.value), 1);
     const H = top + items.length * rowH + 4;
@@ -110,10 +110,10 @@ export function hbars(items, { color = "var(--s1)", format = (v) => num(v), head
     items.forEach((it, i) => {
       const y = top + i * rowH;
       const w = Math.max(2, (it.value / m) * plotW);
-      svg.append(s("text", { class: "lbl", x: labelW - 8, y: y + bar / 2 + 4.5, "text-anchor": "end", "font-size": 12.5 }, cut(it.label, labelW - 10, 12.5)));
+      svg.append(s("text", { class: "lbl", x: labelW - 8, y: y + bar / 2 + 4.5, "text-anchor": "end", "font-size": 13 }, cut(it.label, labelW - 10, 13)));
       svg.append(s("path", { class: "mark", d: hbarPath(labelW, y, w, bar), fill: it.color || color }));
       svg.append(s("text", { class: "val", x: labelW + w + 6, y: y + bar / 2 + 4.5 }, it.display ?? format(it.value)));
-      if (showNotes && it.note) svg.append(s("text", { class: "muted", x: labelW + w + 6 + valTextW(it) + 8, y: y + bar / 2 + 4.5, "font-size": 11 }, it.note));
+      if (showNotes && it.note) svg.append(s("text", { class: "muted", x: labelW + w + 6 + valTextW(it) + 8, y: y + bar / 2 + 4.5, "font-size": 13 }, it.note));
       const hit = s("rect", { class: "hit", x: 0, y: y - 4, width, height: rowH });
       bindTip(hit, (it.tip || `${it.label}\n${it.display ?? format(it.value)}`) + (it.note && !showNotes && !it.tip ? `\n${it.note}` : ""));
       svg.append(hit);
@@ -175,8 +175,8 @@ export function columns(items, { color = "var(--s1)", height = 170, format = (v)
       const x = left + i * slot + (slot - bw) / 2;
       const hh = (it.value / m) * plotH;
       if (hh > 0) svg.append(s("path", { class: "mark", d: vbarPath(x, top + plotH, bw, Math.max(2, hh)), fill: color }));
-      if (i % step === 0) svg.append(s("text", { x: x + bw / 2, y: height - 6, "text-anchor": "middle", "font-size": 11, class: "muted" }, it.label));
-      if (i === best && it.value) svg.append(s("text", { class: "val", x: x + bw / 2, y: top + plotH - hh - 5, "text-anchor": "middle", "font-size": 11 }, format(it.value)));
+      if (i % step === 0) svg.append(s("text", { x: x + bw / 2, y: height - 6, "text-anchor": "middle", "font-size": 13, class: "muted" }, it.label));
+      if (i === best && it.value) svg.append(s("text", { class: "val", x: x + bw / 2, y: top + plotH - hh - 5, "text-anchor": "middle", "font-size": 13 }, format(it.value)));
       const hit = s("rect", { class: "hit", x: left + i * slot, y: 0, width: slot, height });
       bindTip(hit, it.tip || `${it.label}\n${format(it.value)}`);
       svg.append(hit);
@@ -203,14 +203,14 @@ export function lines(series, { height = 230, format = (v) => num(v), head = ["�
     for (let i = 0; i <= 4; i++) {
       const v = (maxY / 4) * i;
       svg.append(s("line", { class: i ? "gridline" : "axis", x1: left, x2: left + plotW, y1: Y(v), y2: Y(v) }));
-      svg.append(s("text", { x: left - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, class: "muted" }, format(v)));
+      svg.append(s("text", { x: left - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 13, class: "muted" }, format(v)));
     }
     const step = Math.max(1, Math.ceil(xs.length / Math.max(2, Math.floor(plotW / 70))));
     // date labels: the first hangs to the right of its point, the last to the left, so neither leaves the picture
     xs.forEach((x, i) => {
       if (!(i % step === 0 || i === xs.length - 1)) return;
       const anchor = xs.length > 1 && i === 0 ? "start" : xs.length > 1 && i === xs.length - 1 ? "end" : "middle";
-      svg.append(s("text", { x: X(x), y: height - 6, "text-anchor": anchor, "font-size": 11, class: "muted" }, xLabel(x)));
+      svg.append(s("text", { x: X(x), y: height - 6, "text-anchor": anchor, "font-size": 13, class: "muted" }, xLabel(x)));
     });
     const ends = [];
     series.forEach((sr, si) => {
@@ -226,7 +226,7 @@ export function lines(series, { height = 230, format = (v) => num(v), head = ["�
     // end labels only with room on the right and no collision; otherwise the legend + tooltip carry identity
     ends.sort((a, b) => a.y - b.y);
     const collide = ends.some((e, i) => i && e.y - ends[i - 1].y < 14);
-    if (right > 60 && !collide) for (const e of ends) svg.append(s("text", { x: e.x + 8, y: e.y + 4, "font-size": 11, class: "lbl" }, cut(e.label, right - 10, 11)));
+    if (right > 60 && !collide) for (const e of ends) svg.append(s("text", { x: e.x + 8, y: e.y + 4, "font-size": 13, class: "lbl" }, cut(e.label, right - 10, 13)));
     const cross = s("line", { x1: 0, x2: 0, y1: top, y2: top + plotH, stroke: "var(--axis)", "stroke-width": 1, visibility: "hidden" });
     svg.append(cross);
     const hit = s("rect", { x: left, y: top, width: plotW, height: plotH, fill: "transparent" });

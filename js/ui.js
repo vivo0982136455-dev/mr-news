@@ -14,6 +14,12 @@ export function h(tag, attrs, ...kids) {
   add(el, kids);
   return el;
 }
+// replace an element's content; null / false are skipped (el.replaceChildren(null) would write the word "null")
+export function fill(el, ...kids) {
+  el.replaceChildren();
+  add(el, kids);
+  return el;
+}
 function add(el, kids) {
   for (const k of kids) {
     if (k == null || k === false) continue;
@@ -181,7 +187,7 @@ export function videoCard(v, rank, { onSave, showGain = true, why = false, onFla
 export function embed(v) {
   const box = h("div", { class: "frame" });
   const play = () => {
-    box.replaceChildren(h("iframe", {
+    fill(box, h("iframe", {
       src: `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.id)}?autoplay=1&rel=0`,
       title: v.t, allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowfullscreen: true, loading: "lazy",
     }));
@@ -210,6 +216,20 @@ export function tile(label, value, delta) {
 export function section(title, sub, ...kids) {
   return h("section", { class: "section" }, h("h2", {}, title, sub ? h("small", {}, sub) : null), ...kids);
 }
+// a secondary section, folded until tapped (keeps long pages short on a phone)
+export function fold(title, sub, ...kids) {
+  return h("details", { class: "fold section" }, h("summary", {}, h("span", {}, title, sub ? h("small", {}, sub) : null)), h("div", { style: { marginTop: "10px" } }, ...kids));
+}
+// "ไปที่: …" links that scroll inside the page (a plain #id would be read as a page address by the router)
+export function jumpBar(links) {
+  return h("nav", { class: "jump", "aria-label": "ไปที่ส่วนต่างๆ ของหน้านี้" }, h("span", {}, "ไปที่:"),
+    links.map(([id, label]) => h("a", { href: location.hash || "#/", onclick: (e) => {
+      e.preventDefault();
+      const el = document.getElementById(id);
+      if (el) { if (el.tagName === "DETAILS") el.open = true; el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    } }, label)));
+}
+export const withId = (el, id) => { el.id = id; return el; };
 
 export function promptBox(text) {
   return h("div", { class: "prompt" }, h("button", { class: "btn small copy", onclick: () => copy(text) }, "คัดลอก"), h("pre", {}, text));

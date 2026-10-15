@@ -20,6 +20,7 @@ const PAGES = {
   results: () => import("./pages/results.js"),
   ladder: () => import("./pages/ladder.js"),
   review: () => import("./pages/review.js"),
+  search: () => import("./pages/search.js"),
 };
 const BOTTOM = [
   ["", "🏠", "หน้าแรก"],
@@ -58,11 +59,12 @@ function shell() {
       h("div", { class: "ch" }, "งานของ Win"),
       link("plan", "🗓️", "แผนสัปดาห์นี้"), link("results", "📈", "ผลคลิปของเรา"),
       h("div", { class: "ch" }, "บทเรียน"),
-      link("ladder", "🪜", "บันได 5 ขั้น"), link("review", "🧠", "ทวนความจำ"),
+      link("ladder", "🪜", "บันได 5 ขั้น"), link("review", "🧠", "ทวนความจำ"), link("search", "🔎", "ค้นหา + อภิธานศัพท์"),
       CHAPTERS.map((c) => link(c.id, c.icon, c.title, true)),
       h("div", { class: "ch" }, "อื่นๆ"), link("", "🏠", "หน้าแรก / ปก")),
     h("div", { class: "foot" }, themeButton(), h("p", { style: { marginTop: "10px" } }, "ข้อมูลอัปเดตเองทุก 6 ชั่วโมง โน้ตของ Win เก็บในเครื่องนี้เท่านั้น")));
-  const top = h("header", { class: "top" }, h("a", { class: "logo", href: "#/" }, h("b", {}, "MN"), "สมุดครีเอเตอร์"), h("span", { class: "spacer" }), themeButton());
+  const top = h("header", { class: "top" }, h("a", { class: "logo", href: "#/" }, h("b", {}, "MN"), "สมุดครีเอเตอร์"), h("span", { class: "spacer" }),
+    h("a", { class: "icon-btn", href: "#/search", "aria-label": "ค้นหาทั้งเล่ม", style: { display: "inline-flex", alignItems: "center", textDecoration: "none" } }, "🔎"), themeButton());
   const main = h("main", { id: "main", tabindex: "-1" });
   const bottom = h("nav", { class: "bottom", "aria-label": "เมนูหลัก" }, BOTTOM.map(([id, ico, name]) => h("a", { href: "#/" + id, "data-id": id }, h("span", { class: "ico" }, ico), name)));
   document.body.replaceChildren(h("div", { class: "app" }, side, h("div", { style: { minWidth: 0 } }, top, main)), bottom);
@@ -73,7 +75,7 @@ function link(id, ico, name, prog) {
 }
 
 function markCurrent(id) {
-  const learnIds = new Set(["learn", "ladder", "review", ...CHAPTERS.map((c) => c.id)]);
+  const learnIds = new Set(["learn", "ladder", "review", "search", ...CHAPTERS.map((c) => c.id)]);
   for (const a of document.querySelectorAll(".side nav a, .bottom a")) {
     const aid = a.getAttribute("data-id");
     const on = aid === id || (a.closest(".bottom") && ((aid === "learn" && learnIds.has(id)) || (aid === "notes" && (id === "plan" || id === "results")) || (aid === "" && id === "start")));

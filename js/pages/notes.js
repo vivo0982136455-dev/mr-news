@@ -1,7 +1,8 @@
 // สมุดโน้ตของ Win: trends, ideas, scripts, own results. Lives in this browser only; backup = export file.
-import { h, thTime, toast, copy, store } from "../ui.js";
+import { h, thTime, toast, copy, store, fill } from "../ui.js";
 import { allNotes, saveNotes, addNote, PAGES_FOR, KINDS } from "../notes-store.js";
 import { KEYS as MY_KEYS } from "../my-store.js";
+import { backupNow, backupNag, download } from "../backup.js";
 
 const FIELDS = [
   ["topic", "หัวข้อ / ชื่อคลิป / ไอเดีย", "input", true],
@@ -22,6 +23,7 @@ export async function render(main) {
     h("h1", {}, "📒 สมุดโน้ตของ Win"),
     h("p", {}, "จดเทรนด์ ไอเดีย บท และผลคลิปของเราไว้ที่เดียว กด 📌 ในหน้า Mr News / Mr Idea ก็จดมาที่นี่อัตโนมัติ"),
     h("div", { class: "row", style: { margin: "0 0 10px" } }, h("a", { class: "btn", href: "#/plan" }, "🗓️ แผนสัปดาห์นี้"), h("a", { class: "btn", href: "#/results" }, "📈 ผลคลิปของเรา")),
+    backupNag(() => location.reload()),
     h("div", { class: "warn" }, "🔒 โน้ต แผนสัปดาห์ และผลคลิป เก็บในเบราว์เซอร์นี้เท่านั้น (ไม่ขึ้นเว็บ ไม่มีใครเห็น) ถ้าล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่องจะหาย — กด \"สำรองเป็นไฟล์\" เป็นประจำ (ไฟล์เดียวเก็บครบทุกอย่าง)")));
 
   // ---- the form ----
@@ -49,7 +51,7 @@ export async function render(main) {
   const fileIn = h("input", { type: "file", accept: ".json,application/json", hidden: true, onchange: importFile });
   main.append(h("div", { class: "controls", style: { marginTop: "16px" } }, search, kindSel, pageSel),
     h("div", { class: "row", style: { marginBottom: "12px" } },
-      h("button", { class: "btn small", onclick: exportJson }, "💾 สำรองเป็นไฟล์"),
+      h("button", { class: "btn small", onclick: () => backupNow() }, "💾 สำรองเป็นไฟล์"),
       h("button", { class: "btn small", onclick: () => fileIn.click() }, "📂 เปิดไฟล์สำรอง"),
       h("button", { class: "btn small", onclick: exportCsv }, "📊 ส่งออกให้ Excel"), fileIn));
 
@@ -59,8 +61,8 @@ export async function render(main) {
   function draw() {
     const notes = allNotes().filter((n) => (!filter.kind || n.kind === filter.kind) && (!filter.page || n.page === filter.page) &&
       (!filter.q || JSON.stringify(n).toLowerCase().includes(filter.q)));
-    if (!notes.length) return list.replaceChildren(h("div", { class: "empty" }, allNotes().length ? "ไม่มีโน้ตที่ตรงกับตัวกรอง" : "ยังไม่มีโน้ต — ลองกด 📌 จดลงสมุด ที่การ์ดคลิปในหน้า Mr News"));
-    list.replaceChildren(...notes.map(noteItem));
+    if (!notes.length) return fill(list, h("div", { class: "empty" }, allNotes().length ? "ไม่มีโน้ตที่ตรงกับตัวกรอง" : "ยังไม่มีโน้ต — ลองกด 📌 จดลงสมุด ที่การ์ดคลิปในหน้า Mr News"));
+    fill(list, ...notes.map(noteItem));
   }
   function noteItem(n) {
     const field = (k, label) => n[k] ? h("div", { class: "note", style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }, h("b", {}, label + ": "), n[k]) : null;
@@ -79,17 +81,6 @@ export async function render(main) {
     if (v == null) return;
     saveNotes(allNotes().map((x) => (x.id === n.id ? { ...x, why: v } : x)));
     draw();
-  }
-  function download(name, text, type) {
-    const a = h("a", { href: URL.createObjectURL(new Blob([text], { type })), download: name });
-    document.body.append(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-  }
-  function exportJson() {
-    // version 2 (Oct 2026) also carries Win's setup, weekly plan, clip results and Sunday reviews
-    const mine = Object.fromEntries(MY_KEYS.map((k) => [k, store.get(k, null)]).filter(([, v]) => v != null));
-    download(`mr-news-notes-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: "mr-news", version: 2, notes: allNotes(), mine }, null, 1), "application/json");
   }
   function exportCsv() {
     const cols = ["at", "kind", "page", "topic", "source", "link", "channel", "format", "sound", "views", "why", "plan"];
