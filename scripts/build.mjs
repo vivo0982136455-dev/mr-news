@@ -13,6 +13,7 @@ import { buildIdeas } from "./ideas.mjs";
 
 const TOP = 100;
 const KEEP_IN_DAY = 200;
+export const COMPARE_DAYS = 7; // "▲ from 7 days" needs 7 real days before it is shown
 
 // views gained in the last 24 h for one followed video
 export function gain(v, nowIso) {
@@ -97,7 +98,12 @@ export function build() {
   const charts = readJson("state/charts.json", {});
   const trends = readJson("state/trends.json", {});
   const nowIso = new Date().toISOString();
-  const day = thaiDate();
+  // The day of the DATA is the Thai day YouTube was last read, not the day this build runs: the robot rebuilds
+  // every 6 hours, and naming the day file by build time made a copy of yesterday under today's name (2026-10-15).
+  const ytAt = lastReading(videos);
+  const trendsAt = lastTrends(trends);
+  const day = ytAt ? thaiDate(new Date(ytAt)) : thaiDate();
+  const today = thaiDate();
 
   const all = [];
   for (const [id, v] of Object.entries(videos)) {
@@ -115,10 +121,11 @@ export function build() {
   const statsAll = analyse(th);
 
   // momentum: today's share of each theme vs the average share of the last 7 days
+  // shown only once 7 real days exist: fewer days give a number that looks precise but means little
   const past = readDays(7, day);
   for (const t of statsCreator.themes) {
     const shares = past.map((d) => (d.creator.themes.find((x) => x.id === t.id) || { share: 0 }).share);
-    t.prev = shares.length ? shares.reduce((a, b) => a + b, 0) / shares.length : null;
+    t.prev = shares.length >= COMPARE_DAYS ? shares.reduce((a, b) => a + b, 0) / shares.length : null;
   }
 
   // channels
@@ -141,8 +148,11 @@ export function build() {
     .filter((c) => c.g > 0).sort((a, b) => (b.subsGain ?? -1) - (a.subsGain ?? -1) || b.g - a.g).slice(0, 50);
 
   const latest = {
-    updated: nowIso,
-    day,
+    updated: nowIso,     // when this file was built (every 6 h) - NOT how fresh the numbers are
+    ytAt,                // when YouTube was last read: the time of every view number
+    trendsAt,            // when Google Trends was last read
+    day,                 // the Thai day of ytAt
+    pastDays: past.length,
     measured: th.filter((v) => v.m).length,
     counts: { th: th.length, creator: creator.length, lo: lo.length, channels: thCh.length },
     creator: { top: creator.slice(0, TOP).map(row), ...statsCreator },
@@ -158,14 +168,22 @@ export function build() {
       channels: loCh.sort((a, b) => b.subs - a.subs).slice(0, 30),
     },
     charts: { updated: charts.updated, TH: (charts.TH || []).slice(0, 30), LA: (charts.LA || []).slice(0, 30) },
-    trends: { today: trends[day] || [], yesterday: trends[thaiDate(new Date(Date.now() - 864e5))] || [] },
+    trends: { today: trends[today] || [], yesterday: trends[thaiDate(new Date(Date.now() - 864e5))] || [] },
   };
   writeJson("latest.json", latest);
 
-  // ---- the day record (history) ----
+  const ls = (dir) => (fs.existsSync(path.join(DATA, dir)) ? fs.readdirSync(path.join(DATA, dir)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort() : []);
+  if (!ytAt) {
+    log("build: no YouTube reading yet - no day record");
+    writeJson("ideas.json", buildIdeas(latest, past));
+    return latest;
+  }
+
+  // ---- the day record (history): one file per Thai day YouTube was read; a rebuild of the same read rewrites
+  // the same file with the same content (so git sees no change) ----
   const dayRec = {
     day,
-    updated: nowIso,
+    updated: ytAt,
     creator: {
       top: creator.slice(0, KEEP_IN_DAY).map((v) => [v.id, v.g, v.t, v.cn, v.cat, v.d, v.themes.join(" "), v.m]),
       themes: statsCreator.themes.map(({ id, v, n, share }) => ({ id, v, n, share })),
@@ -190,13 +208,27 @@ export function build() {
   writeJson(`years/${year}.json`, sumPeriod(year, months));
 
   // the list of periods the page can open
-  const ls = (dir) => fs.readdirSync(path.join(DATA, dir)).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort();
   writeJson("index.json", { days: ls("days"), months: ls("months"), years: ls("years"), updated: nowIso });
 
   const ideas = buildIdeas(latest, past);
   writeJson("ideas.json", ideas);
   log(`build: ${th.length} Thai (${creator.length} creator, ${latest.measured} measured), ${lo.length} Lao, ideas ${ideas.cards.length}`);
   return latest;
+}
+
+// the newest YouTube reading of any followed video = when YouTube was last read (null before the first read)
+export function lastReading(videos) {
+  let best = 0;
+  for (const v of Object.values(videos)) {
+    const t = Date.parse(v.s?.at(-1)?.[0] || "");
+    if (t > best) best = t;
+  }
+  return best ? new Date(best).toISOString() : null;
+}
+function lastTrends(trends) {
+  let best = 0;
+  for (const list of Object.values(trends)) for (const t of list || []) best = Math.max(best, Date.parse(t.last || "") || 0);
+  return best ? new Date(best).toISOString() : null;
 }
 
 const MEDIA = (name) => /official|ทีวี|\btv\b|ช่อง ?\d|\bhd ?\d|news|ข่าว|records|music|workpoint|one31|ch3|gmm|pptv|thairath|ไทยรัฐ|amarin|vevo/i.test(name || "");

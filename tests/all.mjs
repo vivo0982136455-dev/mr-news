@@ -63,6 +63,28 @@ const idx = json("data/index.json");
 ok(idx.days.length >= 1 && idx.months.length >= 1 && idx.years.length >= 1, "index lists days, months, years");
 for (const d of idx.days) ok(fs.existsSync(path.join(ROOT, "data/days", d + ".json")), `day file ${d} exists`);
 
+// 2b. the NUMBERS are right (the first 205 checks passed while a day was a copy and October was doubled)
+console.log("2b. numbers");
+const { checkData } = await import(pathToFileURL(path.join(ROOT, "scripts/check-data.mjs")).href);
+const dataProblems = checkData().filter((p) => !/^YouTube (not read|'s last run failed)/.test(p)); // freshness is the robot's job
+ok(!dataProblems.length, "robot's data check: no copied day, months = sum of their own days, ideas present", dataProblems.join(" | "));
+const thai = (iso) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 10);
+ok(L.ytAt && L.day === thai(L.ytAt), "latest.day is the Thai day YouTube was read (not the day the file was built)", `${L.day} vs ${L.ytAt}`);
+ok(Date.parse(L.ytAt) <= Date.parse(L.updated), "YouTube read time is not after the build time");
+ok(idx.days.every((d) => d <= L.day), "no day file is newer than the last YouTube read", idx.days.join(","));
+const months = idx.months.map((m) => json(`data/months/${m}.json`));
+for (const m of months) ok(m.total === m.days.reduce((a, d) => a + json(`data/days/${d}.json`).creator.total, 0), `month ${m.period}: total = sum of its days, each once`);
+ok((L.pastDays ?? 0) >= 7 || L.creator.themes.every((t) => t.prev == null), "no '▲ from 7 days' before 7 real days exist", `pastDays ${L.pastDays}`);
+ok((I.pastDays ?? 0) >= 7 || I.cards.every((c) => c.momentum == null), "ideas show no momentum before 7 real days");
+ok(I.ytAt === L.ytAt, "ideas carry the same YouTube read time as Mr News");
+const { lessonFits, MAX_SEC } = await import(pathToFileURL(path.join(ROOT, "scripts/fetch-learn.mjs")).href);
+for (const [k, l] of Object.entries(LE.lessons)) {
+  const c = learnCfg.lessons[k];
+  if (!c) continue;
+  for (const v of l.vids) ok((c.pinned || []).includes(v.id) || lessonFits(v.t, v.d, c.must, c.not), `lesson ${k}: video fits the lesson`, `${v.t} (${Math.round(v.d / 60)} min)`);
+  ok(l.vids.every((v) => v.d <= MAX_SEC), `lesson ${k}: no video longer than 30 min`);
+}
+
 // ---------------------------------------------------------------- 3. browser
 console.log("3. browser");
 const PORT = 8790;
@@ -96,8 +118,32 @@ try {
     }
     if (w >= 768) ok(await page.eval(`return ![...document.querySelector(".chart svg").querySelectorAll("text.lbl")].some(t => t.textContent.includes("…"));`), `${w}px: theme names are not cut short on a wide screen`);
     if (w === 380 || w === 1440) await page.shot(`news-${w}-${dark ? "dark" : "light"}.png`);
+    if (w === 380) {
+      // the estimate labels open on a TAP and stay inside a phone screen
+      await page.eval(`document.querySelector(".info.est").click(); return true;`);
+      await sleep(200);
+      const problems = await page.eval(LAYOUT_CHECK);
+      ok(await page.eval(`return !document.querySelector(".info-pop").hidden && document.querySelector(".info-pop").textContent.includes("ยอดวิวทั้งหมด ÷ ชั่วโมง");`), `${w}px ${dark ? "dark" : "light"}: tapping "ประมาณ" shows how it is worked out`);
+      ok(!problems.length, `${w}px ${dark ? "dark" : "light"}: open explanation fits the screen`, problems.join(" | "));
+      await page.shot(`news-est-${dark ? "dark" : "light"}.png`);
+    }
     await page.close();
   }
+
+  // ---- honest time labels ----
+  const t = await browser.newPage({ width: 380, height: 820 });
+  await t.goto(BASE + "#/news", 2000);
+  const head = await t.eval(`return document.querySelector(".page-head").innerText;`);
+  ok(head.includes("ข้อมูล YouTube อ่านเมื่อ") && !head.includes("อัปเดตล่าสุด"), "news head says when YouTube was READ, not when the file was built", head.slice(0, 120));
+  ok(await t.eval(`return document.querySelectorAll(".vcard .info").length > 0 && !document.querySelector(".vcard [title*='ประมาณ']");`), "video cards use tap labels, no hover-only tooltip");
+  // pretend 40 hours have passed: a red "stale" banner must appear on the news page, the cover and Mr Idea
+  for (const r of ["news", "", "idea"]) {
+    await t.goto(BASE + "#/notes", 800);
+    await t.eval(`const real = Date.now.bind(Date); Date.now = () => real() + 40 * 3600e3; location.hash = "#/${r}"; return true;`);
+    ok(await t.until(`document.querySelector(".warn.bad") && document.querySelector(".warn.bad").textContent.includes("ข้อมูล YouTube ค้างตั้งแต่")`, 8000), `#/${r}: red banner when YouTube data is 40 h old`);
+    if (r === "news") await t.shot("news-stale-380.png");
+  }
+  await t.close();
 
   // ---- real clicks ----
   const p = await browser.newPage({ width: 380, height: 820 });

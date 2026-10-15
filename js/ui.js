@@ -64,6 +64,44 @@ export const thDay = (ymd) => { const [y, m, d] = ymd.split("-").map(Number); re
 export const thMonth = (ym) => { const [y, m] = ym.split("-").map(Number); return `${MONTHS_FULL[m - 1]} ${y + 543}`; };
 export const thTime = (iso) => { const d = new Date(Date.parse(iso) + 7 * 3600e3); return `${thDay(d.toISOString().slice(0, 10))} ${d.toISOString().slice(11, 16)} น.`; };
 
+export const thaiToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+
+// How fresh the numbers are, said honestly: the time YouTube was READ (every view number is from then), not the
+// time the file was rebuilt. Yellow after 26 h, a red banner after 36 h (the robot reads YouTube about once a day).
+// A file built before "ytAt" existed falls back to "updated".
+export const YT_LATE_H = 26, YT_STALE_H = 36;
+export function freshness(d, { trends = true } = {}) {
+  const yt = d.ytAt || d.updated;
+  const ageH = (Date.now() - Date.parse(yt)) / 3600e3;
+  const level = ageH >= YT_STALE_H ? "stale" : ageH >= YT_LATE_H ? "late" : "ok";
+  const notToday = d.day && d.day !== thaiToday();
+  const line = h("div", { class: "fresh " + level },
+    "ข้อมูล YouTube อ่านเมื่อ ", h("b", {}, thTime(yt)), ` (${ago(yt)})`,
+    trends && d.trendsAt ? [" · Google Trends อ่านเมื่อ ", thTime(d.trendsAt)] : null,
+    notToday && level !== "stale" ? h("div", {}, `วันนี้ยังไม่ได้อ่าน YouTube — ตัวเลขเป็นของวันที่ ${thDay(d.day)} (ระบบอ่านวันละครั้ง)`) : null);
+  const banner = level === "stale" ? h("div", { class: "warn bad", role: "alert" },
+    `⚠️ ข้อมูล YouTube ค้างตั้งแต่ ${thTime(yt)} — ระบบยังอ่านใหม่ไม่ได้ ตัวเลขทุกตัวในหน้านี้เป็นของวันนั้น ไม่ใช่วันนี้`) : null;
+  return [line, banner];
+}
+
+// a label you can TAP to read what it means: a one-line Thai explanation opens under it
+// (the old hover tooltip never showed on a phone)
+export function info(label, text, cls = "") {
+  const pop = h("span", { class: "info-pop", hidden: true }, text);
+  const btn = h("button", { type: "button", class: ("info " + cls).trim(), "aria-expanded": "false", onclick: (e) => {
+    e.preventDefault();
+    const open = pop.hidden;
+    pop.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+  } }, label, h("span", { "aria-hidden": "true" }, " ⓘ"));
+  return h("span", { class: "info-wrap" }, btn, pop);
+}
+export const EST_TEXT = "ค่าประมาณ = ยอดวิวทั้งหมด ÷ ชั่วโมงตั้งแต่โพสต์ × 24 (คลิปที่โพสต์ไม่ถึง 24 ชม. = ยอดวิวทั้งหมด) เพราะระบบยังไม่ได้อ่านคลิปนี้ซ้ำครบ 1 วัน · ที่มา: YouTube · ไม่ได้บอกวิวจริงของวันนี้: คลิปเก่ามักได้ค่าสูงเกินจริง คลิปใหม่ได้ต่ำเกินจริง";
+export const MEASURED_TEXT = "วัดจริง = ระบบอ่านยอดวิวคลิปนี้ 2 ครั้ง ห่างกัน 18-40 ชม. แล้วปรับเป็น 24 ชม. · ที่มา: YouTube · ไม่ได้บอกว่าคนดูเป็นคนไทยหรือคนลาวกี่คน";
+// share of the numbers that are measured (not estimated); under half = the whole block is labelled "ประมาณ"
+export const measuredShare = (list) => (list.length ? list.filter((v) => v.m).length / list.length : 0);
+export const estBadge = (what) => info("ประมาณ", `${what}: ส่วนใหญ่รวมจากค่าประมาณ เพราะคลิปส่วนใหญ่ยังไม่ได้วัดซ้ำครบ 1 วัน · ${EST_TEXT}`, "est");
+
 export const ytUrl = (id) => `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`;
 export const ytThumb = (id) => `https://i.ytimg.com/vi/${encodeURIComponent(id)}/mqdefault.jpg`;
 
@@ -111,7 +149,7 @@ export function videoCard(v, rank, { onSave, showGain = true } = {}) {
       h("div", { class: "meta" }, v.cn, " · ", v.d && v.d <= 180 ? "Shorts" : "คลิปยาว", v.ageH != null ? ` · โพสต์ ${v.ageH < 48 ? v.ageH + " ชม. ก่อน" : Math.round(v.ageH / 24) + " วันก่อน"}` : ""),
       showGain && v.g != null ? h("div", { class: "meta" },
         h("span", { class: "g" }, "+" + num(v.g)), " วิวใน 24 ชม. ",
-        est ? h("span", { class: "est", title: "ประมาณจากอายุคลิป (ยอดวิว ÷ ชั่วโมงตั้งแต่โพสต์ × 24) เพราะยังไม่มีการวัดซ้ำครบ 1 วัน" }, "(ประมาณ)") : h("span", { class: "pill up" }, "วัดจริง"),
+        est ? info("ประมาณ", EST_TEXT, "est") : info("วัดจริง", MEASURED_TEXT, "up"),
         v.views != null ? ` · รวม ${num(v.views)}` : "") : v.v != null ? h("div", { class: "meta" }, h("span", { class: "g" }, num(v.v)), " วิว") : null,
       h("div", {}, themeChips(v.themes)),
       onSave ? h("div", { class: "acts" }, h("button", { class: "btn small", onclick: () => onSave(v) }, "📌 จดลงสมุด")) : null));

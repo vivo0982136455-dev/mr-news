@@ -78,8 +78,11 @@ function block(b, learn, lessonId) {
   if (b.src) return h("div", { class: "src" }, "ที่มา: ", b.src.map(([label, url], i) => [i ? " · " : "", h("a", { href: url, target: "_blank", rel: "noopener" }, label)]));
   if (b.learn) {
     const vids = learn?.lessons?.[b.learn]?.vids || [];
-    return h("div", {}, h("h3", { style: { marginTop: "14px" } }, "🎥 เรียนจากคลิปจริง ", h("span", { class: "note", style: { fontWeight: 400 } }, "(ระบบคัดคลิปสอนภาษาไทยที่คนดูเยอะที่สุดทุกสัปดาห์ กดเล่นได้เลย)")),
-      vids.length ? h("div", { class: "embeds" }, vids.slice(0, b.n || 2).map(embed)) : h("div", { class: "empty" }, "ยังไม่มีคลิป — ระบบจะคัดให้ในรอบอัปเดตถัดไป"),
+    const q = learn?.lessons?.[b.learn]?.q;
+    return h("div", {}, h("h3", { style: { marginTop: "14px" } }, "🎥 เรียนจากคลิปจริง ", h("span", { class: "note", style: { fontWeight: 400 } }, "(ระบบค้นคลิปสอนภาษาไทยที่ตรงบทนี้ทุกสัปดาห์: ชื่อคลิปต้องมีคำว่า สอน/วิธี และเรื่องของบท ยาวไม่เกิน 30 นาที — กดเล่นได้เลย)")),
+      vids.length ? h("div", { class: "embeds" }, vids.slice(0, b.n || 2).map(embed))
+        : h("div", { class: "empty" }, "สัปดาห์นี้ยังไม่เจอคลิปที่ตรงบทพอ ",
+          q ? h("a", { href: `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`, target: "_blank", rel: "noopener" }, "ค้นเองใน YouTube ↗") : null),
       vids.length > (b.n || 2) ? h("details", { class: "more" }, h("summary", {}, "ดูคลิปสอนเพิ่ม"), h("div", { class: "embeds" }, vids.slice(b.n || 2).map(embed))) : null);
   }
   return h("div");

@@ -1,17 +1,20 @@
 // Mr Idea: today's best idea for each page, built from Mr News (themes that are big + rising) and the idea bank.
 // Ends with a ready prompt for Gemini so Win can go deeper with his own life details.
-import { h, num, pct, signedPct, dur, thTime, section, store, ytUrl, ytThumb, promptBox, mdEl } from "../ui.js";
+import { h, num, pct, signedPct, dur, thDay, section, store, ytUrl, ytThumb, promptBox, mdEl, freshness } from "../ui.js";
 import { getJSON } from "../data.js";
 import { addNote } from "../notes-store.js";
-import { MIX } from "../shared/ideabank.js";
+import { MIX, IDEAS } from "../shared/ideabank.js";
+
+// how many ready-written ideas the bank holds (the theme is chosen from real data, the idea text is not)
+const BANK = Object.values(IDEAS).reduce((a, b) => a + (b.couple?.length || 0) + (b.ai?.length || 0), 0);
 
 export async function render(main) {
   const data = await getJSON("data/ideas.json");
   const cards = data.cards || [];
   main.append(h("div", { class: "page-head" },
-    h("div", { class: "kicker" }, "คิดจากข้อมูล Mr News ", thTime(data.updated)),
     h("h1", {}, "💡 Mr Idea"),
-    h("p", {}, "ระบบดูว่าหมวดไหน \"ใหญ่\" และ \"กำลังขึ้น\" ในคลิปครีเอเตอร์ไทยวันนี้ แล้วแปลงเป็นไอเดียของ Win เอง 2 แบบ: 🧡 วันๆ One One (ชีวิตจริงคู่รัก) และ 💜 เพจ AI (ตัวละครประจำ) — ไอเดียเปลี่ยนทุกวัน")));
+    freshness(data, { trends: false }),
+    h("p", {}, `ระบบดูว่าหมวดไหน "ใหญ่" ในคลิปครีเอเตอร์ไทย${data.day ? " วันที่ " + thDay(data.day) : "วันนี้"} แล้วหยิบไอเดียของหมวดนั้นมาให้ 2 แบบ: 🧡 วันๆ One One (ชีวิตจริงคู่รัก) และ 💜 เพจ AI (ตัวละครประจำ) — หมวดเลือกจากข้อมูลจริง ส่วนตัวไอเดียหมุนจากคลัง ${BANK} ไอเดียที่เขียนไว้ล่วงหน้า`)));
 
   main.append(h("div", { class: "card" }, h("b", {}, "กฎ 3 ข้อ ก่อนใช้ไอเดีย"),
     h("ol", { style: { margin: "6px 0 0" } },
@@ -40,7 +43,7 @@ export async function render(main) {
 }
 
 function ideaCard(c, big) {
-  const momentum = c.momentum == null ? h("span", { class: "pill" }, "เริ่มเทียบได้พรุ่งนี้") : h("span", { class: "pill " + (c.momentum >= 0 ? "up" : "down") }, (c.momentum >= 0 ? "▲ " : "▼ ") + signedPct(c.momentum) + " จาก 7 วัน");
+  const momentum = c.momentum == null ? h("span", { class: "pill" }, "เทียบขึ้น-ลงได้เมื่อครบ 7 วัน") : h("span", { class: "pill " + (c.momentum >= 0 ? "up" : "down") }, (c.momentum >= 0 ? "▲ " : "▼ ") + signedPct(c.momentum) + " จาก 7 วัน");
   const facts = h("div", { class: "row note", style: { margin: "4px 0 8px" } },
     h("span", { class: "pill brand" }, pct(c.share) + " ของวิว"), momentum,
     h("span", {}, `${c.count} คลิป · ${num(c.views)} วิว/24 ชม.`),

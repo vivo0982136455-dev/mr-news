@@ -1,5 +1,5 @@
 // The cover: today's 3 numbers + today's idea, the chapters with progress, and the 10-minute daily routine.
-import { h, num, pct, thTime, dur } from "../ui.js";
+import { h, pct, dur, thDay, freshness, info, EST_TEXT } from "../ui.js";
 import { tryJSON } from "../data.js";
 import { CHAPTERS, chapterProgress } from "../book.js";
 import { THEME_BY_ID } from "../shared/themes.js";
@@ -23,8 +23,12 @@ export async function render(main) {
     const c = latest.creator;
     const t = c.themes[0];
     const card = ideas?.cards?.[0];
+    const est = latest.counts?.th ? latest.measured / latest.counts.th < 0.5 : true;
     main.append(h("div", { class: "section" },
-      h("h2", {}, "วันนี้ในหนึ่งนาที ", h("small", {}, thTime(latest.updated))),
+      h("h2", {}, "วันนี้ในหนึ่งนาที ", h("small", {}, "ข้อมูลวันที่ " + thDay(latest.day))),
+      freshness(latest, { trends: false }),
+      // the tiles are links, so the "ประมาณ" button sits above them (a button inside a link would open the link)
+      est ? h("div", { class: "row note", style: { marginBottom: "8px" } }, info("การ์ดชุดนี้ส่วนใหญ่เป็นค่าประมาณ", EST_TEXT, "est")) : null,
       h("div", { class: "grid g3" },
         h("a", { class: "tile", href: "#/news", style: { textDecoration: "none", color: "inherit" } },
           h("div", { class: "label" }, "คนไทยดูหมวดไหนมากที่สุด"), h("div", { class: "value" }, t ? `${THEME_BY_ID[t.id]?.icon || ""} ${THEME_BY_ID[t.id]?.name || t.id}` : "–"), h("div", { class: "delta" }, t ? `${pct(t.share)} ของวิวคลิปครีเอเตอร์` : "")),

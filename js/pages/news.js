@@ -1,5 +1,5 @@
 // Mr News: what Thai (and Lao) people watch - today, this month, this year. Data: data/latest.json + the history files.
-import { h, num, pct, signedPct, dur, thTime, thDay, thMonth, seg, tile, section, videoCard, store } from "../ui.js";
+import { h, num, pct, signedPct, dur, thDay, thMonth, seg, tile, section, videoCard, store, freshness, info, estBadge, measuredShare, EST_TEXT } from "../ui.js";
 import { hbars, stack, columns, lines, SERIES } from "../charts.js";
 import { getJSON, tryJSON } from "../data.js";
 import { THEME_BY_ID, CATEGORY, isCreatorVideo, MEDIA_CHANNEL } from "../shared/themes.js";
@@ -14,8 +14,8 @@ export async function render(main) {
 
   main.append(
     h("div", { class: "page-head" },
-      h("div", { class: "kicker" }, "อัปเดตล่าสุด ", thTime(latest.updated)),
       h("h1", {}, "📰 Mr News"),
+      freshness(latest),
       h("p", {}, "คนไทยและคนลาวกำลังดูอะไรบน YouTube: ระบบค้นคลิปไทย/ลาวทุกวัน วัดยอดวิวที่เพิ่มขึ้นใน 24 ชั่วโมง แล้วจัดอันดับให้ หมวด \"ครีเอเตอร์\" ตัดเพลง ข่าว หนัง และช่องทีวีออก เพราะ Win เป็นครีเอเตอร์ ไม่ใช่นักร้องหรือนักข่าว")));
 
   const controls = h("div", { class: "controls" });
@@ -57,10 +57,15 @@ async function dayView(latest, index, st, redraw) {
   const themeOf = (id) => THEME_BY_ID[id] || { name: id, icon: "" };
   const best = v.themes[0];
   const rising = v.themes.filter((t) => t.prev != null && t.n >= 5).map((t) => ({ ...t, mom: t.share / t.prev - 1 })).sort((a, b) => b.mom - a.mom)[0];
-  const measured = latest.measured;
+  // most numbers are estimates until the robot has read the same videos twice, about a day apart: say so on the
+  // numbers themselves, not in a hover tooltip
+  const mShare = latest.counts?.th ? latest.measured / latest.counts.th : 0;
+  const est = mShare < 0.5;
+  const nDays = (latest.pastDays ?? 0) + 1;
 
+  if (est) out.push(h("div", { class: "row note", style: { marginBottom: "8px" } }, info(`วัดจริง ${num(latest.measured, { compact: false })} จาก ${num(latest.counts?.th, { compact: false })} คลิปไทยทั้งหมด ที่เหลือเป็นค่าประมาณ`, EST_TEXT, "est")));
   out.push(h("div", { class: "grid g4" },
-    tile("วิวรวมใน 24 ชม.", num(v.total), `${num(st.view === "all" ? latest.counts.th : latest.counts.creator)} คลิปไทยที่ติดตาม`),
+    tile(["วิวรวมใน 24 ชม. ", est ? estBadge("วิวรวม") : null], num(v.total), `${num(st.view === "all" ? latest.counts.th : latest.counts.creator)} คลิปไทยที่ระบบติดตาม (ไม่ใช่ทั้งประเทศ)`),
     tile("Shorts ได้วิว", pct(v.formats.short.v / (v.formats.short.v + v.formats.long.v || 1)), `${v.formats.short.n} คลิป Shorts / ${v.formats.long.n} คลิปยาว`),
     tile("ความยาวกลางของ Top 50", dur(v.formats.medianTop50), "นาที:วินาที"),
     tile("หมวดอันดับ 1", best ? themeOf(best.id).icon + " " + pct(best.share) : "–", best ? themeOf(best.id).name : "")));
@@ -70,11 +75,11 @@ async function dayView(latest, index, st, redraw) {
     h("div", { class: "big" }, `คนไทยดู “${themeOf(best.id).name}” มากที่สุด — ${pct(best.share)} ของวิวทั้งหมด`),
     h("p", { style: { margin: 0 } }, rising && rising.mom > 0.05
       ? `หมวดที่ขึ้นแรงที่สุดเมื่อเทียบกับ 7 วันก่อน: ${themeOf(rising.id).icon} ${themeOf(rising.id).name} (${signedPct(rising.mom)})`
-      : "การเทียบว่าหมวดไหน \"ขึ้น\" หรือ \"ลง\" จะเริ่มแสดงเมื่อระบบเก็บข้อมูลได้มากกว่า 1 วัน"),
-    measured < 50 ? h("p", { class: "note", style: { margin: "6px 0 0" } }, "ข้อควรรู้: วันนี้วิว 24 ชม. ส่วนใหญ่เป็นค่า “ประมาณ” จากอายุคลิป ระบบจะวัดซ้ำและได้ค่าจริงตั้งแต่รอบถัดไป (ประมาณ 24 ชม. หลังเจอคลิปครั้งแรก)") : null));
+      : `การเทียบว่าหมวดไหน "ขึ้น" หรือ "ลง" จะเริ่มแสดงเมื่อเก็บข้อมูลครบ 7 วัน (ตอนนี้มี ${nDays} วัน) — เทียบเร็วกว่านี้ตัวเลขจะดูแม่นแต่ไม่มีความหมาย`),
+    est ? h("p", { class: "note", style: { margin: "6px 0 0" } }, "ข้อควรรู้: วันนี้วิว 24 ชม. ส่วนใหญ่เป็นค่า “ประมาณ” จากอายุคลิป ระบบจะวัดซ้ำและได้ค่าจริงตั้งแต่รอบถัดไป (ประมาณ 24 ชม. หลังเจอคลิปครั้งแรก)") : null));
 
   // themes
-  out.push(section("หมวดไหนได้วิวมากที่สุด", "% ของวิว 24 ชม. (คลิปหนึ่งอยู่ได้หลายหมวด)",
+  out.push(section("หมวดไหนได้วิวมากที่สุด", "% ของวิว 24 ชม. (คลิปหนึ่งอยู่ได้หลายหมวด)" + (est ? " · ประมาณ" : ""),
     h("div", { class: "card" }, hbars(v.themes.slice(0, 14).map((t) => ({
       label: themeOf(t.id).icon + " " + themeOf(t.id).name,
       value: t.share,
@@ -206,6 +211,7 @@ async function pastDay(day, st) {
   const rec = await getJSON(`data/days/${day}.json`);
   const top = rec.creator.top.map(rowToVideo);
   return [
+    measuredShare(top) < 0.5 ? h("div", { class: "row note", style: { marginBottom: "8px" } }, estBadge(`วิวของวันที่ ${thDay(day)}`)) : null,
     h("div", { class: "card" }, h("h3", {}, `หมวดของวันที่ ${thDay(day)}`),
       hbars(rec.creator.themes.slice(0, 12).map((t) => ({ label: (THEME_BY_ID[t.id]?.icon || "") + " " + (THEME_BY_ID[t.id]?.name || t.id), value: t.share, display: pct(t.share) })), { head: ["หมวด", "% ของวิว"] })),
     topList(`Top คลิปของวันที่ ${thDay(day)} (ครีเอเตอร์)`, top.slice(0, 100), st),
@@ -226,7 +232,8 @@ async function periodView(period, index, st) {
   const wrap = h("div", { class: "period" },
     h("div", { class: "row", style: { marginBottom: "10px" } }, pick),
     h("div", { class: "hero" }, h("div", { class: "note" }, "สรุป" + (period === "month" ? "รายเดือน" : "รายปี")), h("div", { class: "big" }, name),
-      h("p", { style: { margin: 0 } }, `รวมจาก ${nDays} วันที่ระบบเก็บได้ (วิวที่เพิ่มของแต่ละวันบวกกัน) — ${nDays < 7 ? "ยังเก็บได้ไม่กี่วัน ตัวเลขจะครบขึ้นเรื่อยๆ" : "ยิ่งเก็บครบเดือน ยิ่งแม่น"}`)),
+      h("p", { style: { margin: 0 } }, `รวมจาก ${nDays} วันที่ระบบอ่าน YouTube ได้ (วิวที่เพิ่มของแต่ละวันบวกกัน วันละครั้ง) — ${nDays < 7 ? "ยังเก็บได้ไม่กี่วัน ตัวเลขจะครบขึ้นเรื่อยๆ" : "ยิ่งเก็บครบเดือน ยิ่งแม่น"}`),
+      measuredShare(top) < 0.5 ? h("div", { class: "row", style: { marginTop: "6px" } }, estBadge("วิวรวมของช่วงนี้")) : null),
     section("หมวดที่ได้วิวมากที่สุด", name, h("div", { class: "card" }, hbars(rec.themes.slice(0, 14).map((t) => ({
       label: (THEME_BY_ID[t.id]?.icon || "") + " " + (THEME_BY_ID[t.id]?.name || t.id), value: t.share, display: pct(t.share), tip: `${THEME_BY_ID[t.id]?.name}\n${num(t.v)} วิว`,
     })), { head: ["หมวด", "% ของวิว"] }))),
@@ -242,7 +249,7 @@ function laoView(latest) {
   const out = [];
   out.push(h("div", { class: "warn" }, "ข้อมูลลาวมีน้อยกว่าไทยมาก: Google Trends ไม่มีลาว, YouTube ไม่มีชาร์ตลาว ระบบจึงค้นด้วยคำลาวแล้วเก็บเฉพาะคลิปที่ชื่อเป็นอักษรลาวหรือช่องที่ตั้งประเทศเป็นลาว (คลิปภาษาไทยที่พูดถึงลาวก็นับด้วย ถ้าช่องอยู่ในลาว)"));
   out.push(h("div", { class: "grid g3", style: { marginTop: "14px" } },
-    tile("คลิปลาวที่ติดตาม", num(latest.counts.lo)), tile("วิวรวม 24 ชม.", num(lo.total)), tile("หมวดอันดับ 1", lo.themes[0] ? (THEME_BY_ID[lo.themes[0].id]?.icon || "") + " " + pct(lo.themes[0].share) : "–", lo.themes[0] ? THEME_BY_ID[lo.themes[0].id]?.name : "")));
+    tile("คลิปลาวที่ติดตาม", num(latest.counts.lo)), tile(["วิวรวม 24 ชม. ", measuredShare(lo.top) < 0.5 ? estBadge("วิวรวมของคลิปลาว") : null], num(lo.total)), tile("หมวดอันดับ 1", lo.themes[0] ? (THEME_BY_ID[lo.themes[0].id]?.icon || "") + " " + pct(lo.themes[0].share) : "–", lo.themes[0] ? THEME_BY_ID[lo.themes[0].id]?.name : "")));
   if (lo.themes.length) out.push(section("คนลาวดูหมวดไหน", "% ของวิว 24 ชม.", h("div", { class: "card" }, hbars(lo.themes.slice(0, 10).map((t) => ({ label: (THEME_BY_ID[t.id]?.icon || "") + " " + (THEME_BY_ID[t.id]?.name || t.id), value: t.share, display: pct(t.share) })), { head: ["หมวด", "% ของวิว"], color: "var(--s3)" }))));
   out.push(section("Top คลิปลาว", "วิวเพิ่มใน 24 ชม.", h("div", { class: "vlist lao" }, lo.top.slice(0, 30).map((v, i) => videoCard(v, i + 1, { onSave: save })))));
   if (lo.channels?.length) out.push(section("ช่องลาวที่ระบบเจอ", "เรียงตามผู้ติดตาม", h("div", { class: "card" }, hbars(lo.channels.slice(0, 15).map((c) => ({ label: c.t, value: c.subs, tip: `${c.t}\n${num(c.subs)} ผู้ติดตาม · ${num(c.views)} วิวรวม` })), { head: ["ช่อง", "ผู้ติดตาม"], color: "var(--s7)" }),

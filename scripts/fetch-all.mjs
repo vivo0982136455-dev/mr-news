@@ -2,6 +2,7 @@
 //   Google Trends every time · YouTube once a day (when the last full read is 20+ h old) ·
 //   Wikipedia "most followed" and the lesson videos once a week · then build the pages' data.
 // FORCE=youtube,learn,famous runs those now. A failing source never stops the others; its old data stays.
+// A missing key is a FAILURE (recorded in runs.json), not a quiet skip: scripts/check-data.mjs then turns the run red.
 import { readJson, writeJson, log } from "./lib/util.mjs";
 import { fetchTrends } from "./fetch-trends.mjs";
 import { fetchYoutube } from "./fetch-youtube.mjs";
@@ -18,7 +19,7 @@ async function step(name, fn, everyHours) {
   if (!force.has(name) && ageH(name) < everyHours) return log(`${name}: done ${ageH(name).toFixed(1)} h ago - not yet`);
   try {
     const r = await fn();
-    if (r && r.skipped) { status[name] = "skipped (no key)"; return; } // not "done": try again next run
+    if (r && r.skipped) throw new Error("no YouTube key (YT_API_KEY) - nothing was read"); // not "done": try again next run
     runs[name] = { at: new Date().toISOString(), ok: true, info: r && typeof r === "object" ? Object.fromEntries(Object.entries(r).filter(([k]) => !["youtube", "tiktok", "facebook", "lessons", "best_ai", "pages"].includes(k))) : r };
     status[name] = "ok";
   } catch (e) {

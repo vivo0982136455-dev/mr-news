@@ -1,21 +1,21 @@
 {
-  "_note": "Once a week the robot searches YouTube for the best real tutorial videos for every lesson of the 'human video' and 'AI video' chapters (Thai first). One line = 1 search. best_ai = the most viewed AI-made videos to learn from.",
+  "_note": "Once a week the robot searches YouTube for real Thai tutorial videos for every lesson of the 'human video' and 'AI video' chapters. One lesson = 1 search (q). A video is kept only when its title has a teaching word (สอน / วิธี / how to ...) AND at least one word of EVERY group in 'must' AND none of 'not', it is 45 s to 30 min long, and its owner allows embedding. Results stay in YouTube's relevance order (NOT sorted by views: that picked popular off-topic clips). 'pinned' = video ids chosen by hand, always shown first while they still exist. best_ai = the most viewed AI-made videos to learn from.",
   "lessons": {
-    "h-plan": "วางแผนคลิปสั้น เขียนบท ฮุก",
-    "h-shoot": "ถ่ายวิดีโอด้วยมือถือ มือใหม่ มุมกล้อง",
-    "h-light": "จัดแสง ถ่ายคลิป มือถือ ที่บ้าน",
-    "h-sound": "ไมค์ไร้สาย อัดเสียง มือถือ ให้ชัด",
-    "h-edit": "สอนตัดต่อ capcut มือใหม่",
-    "h-caption": "ใส่ซับ capcut อัตโนมัติ ภาษาไทย",
-    "h-thumb": "ทำปก youtube ด้วย canva",
-    "h-upload": "วิธีอัปโหลด youtube shorts",
-    "h-reels": "วิธีลง reels facebook เพจ",
-    "a-idea": "ใช้ gemini คิดคอนเทนต์ เขียนบท",
-    "a-image": "สอนใช้ nano banana สร้างภาพ ตัวละคร",
-    "a-video": "สอนใช้ google flow veo 3 ภาษาไทย",
-    "a-kling": "สอนใช้ kling ai สร้างวิดีโอ",
-    "a-voice": "ทำเสียงพากย์ ai ภาษาไทย",
-    "a-edit": "capcut ตัดต่อคลิป ai"
+    "h-plan": { "q": "สอนเขียนบท คลิปสั้น ฮุก 3 วินาทีแรก", "must": [["เขียนบท", "บทพูด", "สคริปต์", "script", "ฮุก", "hook", "คอนเทนต์", "content", "ไอเดียคลิป", "วางแผนคลิป"]], "not": ["พากย์"], "pinned": [] },
+    "h-shoot": { "q": "สอนถ่ายวิดีโอด้วยมือถือ มือใหม่ มุมกล้อง", "must": [["ถ่าย", "กล้อง", "มุม"]], "pinned": [] },
+    "h-light": { "q": "สอนจัดแสง ถ่ายวิดีโอ มือถือ ที่บ้าน", "must": [["แสง", "ไฟถ่าย", "ไฟ led", "ไฟวงแหวน", "ริงไลท์", "light"]], "pinned": [] },
+    "h-sound": { "q": "สอนใช้ไมค์หนีบ อัดเสียงพูด ถ่ายคลิป มือถือ", "must": [["เสียง", "ไมค์", "mic"], ["พูด", "คลิป", "วิดีโอ", "วีดีโอ", "ไมค์"]], "not": ["เพลง", "ร้อง", "cover", "คาราโอเกะ", "mixer", "มิกเซอร์"], "pinned": [] },
+    "h-edit": { "q": "สอนตัดต่อ capcut มือใหม่", "must": [["ตัดต่อ", "capcut", "edit"]], "pinned": [] },
+    "h-caption": { "q": "สอนใส่ซับ capcut อัตโนมัติ ภาษาไทย", "must": [["ซับ", "subtitle", "คำบรรยาย", "แคปชั่น", "caption"]], "pinned": [] },
+    "h-thumb": { "q": "สอนทำปก youtube ด้วย canva", "must": [["ทำปก", "สร้างปก", "ปก คลิป", "ภาพปก", "หน้าปก", "ปกคลิป", "ปกยูทูป", "ปก youtube", "thumbnail"], ["youtube", "ยูทูป", "ยูทูบ", "คลิป"]], "pinned": [] },
+    "h-upload": { "q": "วิธีอัปโหลด youtube shorts มือถือ", "must": [["shorts", "short", "ชอร์ต"], ["อัป", "อัพ", "ลง", "โพสต์", "upload"]], "pinned": [] },
+    "h-reels": { "q": "วิธีลง reels facebook เพจ มือใหม่", "must": [["reels", "reel", "รีล"]], "pinned": [] },
+    "a-idea": { "q": "ใช้ gemini คิดคอนเทนต์ เขียนบท", "must": [["gemini", "prompt", "พรอมต์", "พร้อมท์", "พรอมท์"], ["คอนเทนต์", "content", "ไอเดีย", "บท", "คิด", "prompt", "พรอมต์", "พร้อมท์", "พรอมท์"]], "pinned": [] },
+    "a-image": { "q": "สอนใช้ nano banana สร้างภาพ ตัวละคร", "must": [["ภาพ", "รูปภาพ", "สร้างรูป", "ทำรูป", "แต่งรูป", "image"], ["nano banana", "gemini", "ai"]], "pinned": [] },
+    "a-video": { "q": "สอนใช้ google flow veo 3 ภาษาไทย", "must": [["flow", "veo"]], "pinned": [] },
+    "a-kling": { "q": "สอนใช้ kling ai สร้างวิดีโอ", "must": [["kling"]], "pinned": [] },
+    "a-voice": { "q": "ทำเสียงพากย์ ai ภาษาไทย", "must": [["เสียง", "พากย์", "voice"], ["ai"]], "pinned": [] },
+    "a-edit": { "q": "capcut ตัดต่อคลิป ai", "must": [["ตัดต่อ", "edit", "capcut"], ["ai"]], "pinned": [] }
   },
   "best_ai": ["AI short film", "AI animation short story", "หนังสั้น AI"]
 }

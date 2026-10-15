@@ -45,6 +45,7 @@ export function buildIdeas(latest, pastDays = []) {
   return {
     day: latest.day,
     updated: latest.updated,
+    ytAt: latest.ytAt, // the time of the numbers the ideas come from
     cards: top,
     mix: fitting.length === 2 ? fitting.map((x) => ({ theme: x.theme, name: x.name, icon: x.icon })) : null,
     trends: (latest.trends.today || []).slice(0, 10).map((x) => x.q),
