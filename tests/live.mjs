@@ -28,6 +28,16 @@ try {
     if (w === 380 && !dark) await page.shot("live-380-light.png");
     await page.close();
   }
+  // can the real site be installed as an app?
+  const a = await browser.newPage({ width: 380, height: 820 });
+  await a.goto(BASE, 3000);
+  ok(await a.until(`navigator.serviceWorker && navigator.serviceWorker.controller`, 20000), "live: the app's service worker takes control");
+  const inst = await a.cdp("Page.getInstallabilityErrors");
+  ok(!inst.installabilityErrors.length, "live: Edge says the site can be installed", JSON.stringify(inst.installabilityErrors));
+  for (const f of ["manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"]) {
+    ok((await fetch(BASE + f, { method: "HEAD" })).ok, `live: ${f} is published`);
+  }
+  await a.close();
 } finally {
   await browser.close();
 }
