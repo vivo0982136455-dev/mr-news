@@ -180,7 +180,8 @@ console.log("3. browser");
 const PORT = 8790;
 const server = await serve(PORT);
 const browser = await launch({ port: 9447 });
-const BASE = `http://127.0.0.1:${PORT}/`;
+const SITE = `http://127.0.0.1:${PORT}/`;
+const BASE = SITE + "?web=1"; // pages straight into the book; the first screen (install / opening) is tested below
 const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results", "ladder", "review", "search"];
 const SIZES = quick ? [[380, 820]] : [[380, 820], [768, 1024], [1440, 900]];
 const THEMES_ = quick ? [false] : [false, true];
@@ -412,6 +413,49 @@ try {
   ok(await e.until(`document.querySelector(".backup-nag") && document.querySelector(".backup-nag").innerText.includes("8 วัน")`, 5000), "8 days after the last backup the notebook reminds again");
   await e.eval(`localStorage.clear(); return true;`);
   await e.close();
+
+  // ---- the first screen: "ติดตั้งก่อน" in a browser, LINE's built-in browser, the opening screen in the app ----
+  const g = await browser.newPage({ width: 380, height: 820 });
+  await g.goto(SITE + "#/notes", 800);
+  await g.eval(`localStorage.clear(); sessionStorage.clear(); return true;`);
+  await g.goto(SITE + "#/", 300);
+  await g.cdp("Page.reload");
+  ok(await g.until(`document.querySelector(".gate.install") && document.querySelector("#gate-title").textContent === "ติดตั้ง Mr News ก่อน"`, 15000), "opened from a link in a browser: 'ติดตั้ง Mr News ก่อน' comes first");
+  ok(await g.eval(`return document.querySelector(".gate-steps, .gate-go") !== null && document.querySelector(".gate-kicker").textContent.includes("จากมือใหม่ สู่ครีเอเตอร์มืออาชีพ");`), "the install screen shows how to install on this phone");
+  const gl = await g.eval(LAYOUT_CHECK.replace('document.querySelector("main")', 'document.querySelector(".gate-layer")').replace('document.querySelectorAll("main *")', 'document.querySelectorAll(".gate-layer *")').replace('"main h1"', '".gate-layer h1"'));
+  ok(!gl.length, "380px: the install screen fits the screen", gl.join(" | "));
+  await g.shot("gate-install-380.png");
+  await g.eval(`[...document.querySelectorAll(".gate-web")][0].click(); return true;`);
+  ok(await g.until(`!document.querySelector(".gate-layer") && document.querySelector(".book-cover")`, 5000), "'ใช้บนเว็บไปก่อน' opens the book underneath");
+  await g.cdp("Page.reload");
+  await sleep(2500);
+  ok(await g.eval(`return !document.querySelector(".gate-layer") && localStorage.getItem("mn_web_ok") === "1";`), "the choice is remembered on this phone");
+  await g.close();
+  // a link opened inside LINE: cannot install there -> open in the phone's browser (openExternalBrowser=1)
+  const ln = await browser.newPage({ width: 380, height: 820 });
+  await ln.cdp("Emulation.setUserAgentOverride", { userAgent: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36 Line/14.16.1" });
+  await ln.goto(SITE + "#/notes", 800);
+  await ln.eval(`localStorage.clear(); return true;`); // the earlier "ใช้บนเว็บไปก่อน" is remembered in this browser
+  await ln.cdp("Page.reload");
+  ok(await ln.until(`document.querySelector(".gate-warn") && document.querySelector(".gate-warn").textContent.includes("LINE")`, 15000), "inside LINE: says LINE cannot install");
+  ok(await ln.eval(`return document.querySelector("a.gate-go").href.includes("openExternalBrowser=1");`), "inside LINE: a button opens the page in the phone's browser");
+  await ln.close();
+  // the installed app: the opening screen every time the app opens, "เปิด" goes in, a reload in the same session skips it
+  const sp = await browser.newPage({ width: 380, height: 820 });
+  // headless Edge cannot emulate display-mode, so the page is told it runs as the installed app before it loads
+  await sp.cdp("Page.addScriptToEvaluateOnNewDocument", { source: `const mm = window.matchMedia.bind(window);
+    window.matchMedia = (q) => (/display-mode: standalone/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : mm(q));` });
+  await sp.goto(SITE + "#/", 2500);
+  ok(await sp.until(`document.querySelector(".gate.splash") && document.querySelector("#splash-title").textContent === "จากมือใหม่ สู่ครีเอเตอร์มืออาชีพ"`, 15000), "installed app: opening screen 'จากมือใหม่ สู่ครีเอเตอร์มืออาชีพ'");
+  const sl = await sp.eval(LAYOUT_CHECK.replace('document.querySelector("main")', 'document.querySelector(".gate-layer")').replace('document.querySelectorAll("main *")', 'document.querySelectorAll(".gate-layer *")').replace('"main h1"', '".gate-layer h1"'));
+  ok(!sl.length, "380px: the opening screen fits the screen", sl.join(" | "));
+  await sp.shot("gate-splash-380.png");
+  await sp.eval(`document.querySelector(".gate-open").click(); return true;`);
+  ok(await sp.until(`!document.querySelector(".gate-layer") && document.querySelector(".book-cover")`, 5000), "'เปิด' opens the book");
+  await sp.cdp("Page.reload");
+  await sleep(2500);
+  ok(await sp.eval(`return !document.querySelector(".gate-layer");`), "a reload inside the same session does not show it again");
+  await sp.close();
 
   // ---- honest time labels ----
   const t = await browser.newPage({ width: 380, height: 820 });

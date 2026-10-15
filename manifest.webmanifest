@@ -1,13 +1,13 @@
 {
   "name": "Mr News — สมุดครีเอเตอร์",
   "short_name": "Mr News",
-  "description": "สมุดครีเอเตอร์ของ Win: คนไทย-ลาวดูอะไรวันนี้, ไอเดียประจำวัน, บทเรียนทำคลิปคนจริงและคลิป AI, สมุดโน้ต",
+  "description": "จากมือใหม่ สู่ครีเอเตอร์มืออาชีพ: คลิปไทย-ลาวที่กำลังได้วิวทุกวัน ไอเดียใหม่ทุกเช้า บันได 5 ขั้น บทเรียนทำคลิปคนจริงและคลิป AI",
   "lang": "th",
   "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f1ea",
+  "background_color": "#1d1b18",
   "theme_color": "#b8431a",
   "categories": ["education", "productivity"],
   "icons": [

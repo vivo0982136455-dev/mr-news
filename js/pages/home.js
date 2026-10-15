@@ -90,7 +90,7 @@ function installCard() {
         h("div", { class: "note" }, "มีไอคอน MN บนหน้าจอ เปิดเต็มจอ และเปิดอ่านได้แม้เน็ตไม่ดี (ฟรี ไม่ต้องผ่าน Play Store)"),
         st === "ready" ? h("div", { class: "row", style: { marginTop: "8px" } }, h("button", { class: "btn primary", type: "button", onclick: async () => { await askInstall(); draw(); } }, "ติดตั้งแอป")) : steps)));
   };
-  onInstallChange(draw);
+  const off = onInstallChange(() => (box.isConnected ? draw() : off()));
   draw();
   return box;
 }

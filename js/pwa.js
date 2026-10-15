@@ -4,8 +4,9 @@
 
 let offer = null; // the browser's install offer (Chrome / Edge / Samsung), kept until the button is tapped
 let done = false;
-let notify = () => {};
-export const onInstallChange = (fn) => { notify = fn; };
+const listeners = new Set();
+const notify = () => { for (const fn of listeners) fn(); };
+export const onInstallChange = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 
 const standalone = () => ["standalone", "window-controls-overlay", "minimal-ui"].some((m) => window.matchMedia(`(display-mode: ${m})`).matches) || navigator.standalone === true;
 export const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -36,7 +37,7 @@ export async function askInstall() {
 const BOOK_FILES = ["js/pages/chapter.js", "js/pages/learn.js", "js/pages/notes.js", "js/pages/idea.js", "js/pages/news.js", "js/pages/home.js",
   "js/pages/start.js", "js/pages/plan.js", "js/pages/results.js", "js/my-store.js", "js/shared/patterns.js",
   "js/pages/ladder.js", "js/pages/review.js", "js/quiz-ui.js", "js/content/quiz.js", "js/content/ladder.js",
-  "js/pages/search.js", "js/content/glossary.js", "js/backup.js",
+  "js/pages/search.js", "js/content/glossary.js", "js/backup.js", "js/gate.js",
   "js/content/handbook.js", "js/content/human.js", "js/content/ai.js", "js/content/figures.js", "js/content/widgets.js",
   "data/latest.json", "data/ideas.json", "data/index.json", "data/history.json", "data/famous.json", "data/learn.json", "manifest.webmanifest", "icons/icon-192.png"];
 function loadedFiles() {

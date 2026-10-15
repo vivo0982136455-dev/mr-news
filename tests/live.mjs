@@ -4,7 +4,9 @@
 import { launch, sleep } from "./browser.mjs";
 import { LAYOUT_CHECK } from "./checks.mjs";
 
-const BASE = process.env.SITE || "https://vivo0982136455-dev.github.io/mr-news/";
+const SITE = process.env.SITE || "https://vivo0982136455-dev.github.io/mr-news/";
+const BASE = SITE; // data files and the page itself
+const PAGE = SITE + "?web=1"; // straight into the book (the first screen is checked once below)
 const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results", "ladder", "review", "search"];
 let pass = 0, fail = 0, slowest = 0;
 const ok = (cond, name, extra = "") => { if (cond) pass++; else { fail++; console.log("  ✗ " + name + (extra ? " — " + extra : "")); } };
@@ -23,7 +25,7 @@ try {
     await page.size(w, hgt, dark);
     for (const r of ROUTES) {
       page.errors.length = 0;
-      await page.goto(BASE + "#/" + r, 300);
+      await page.goto(PAGE + "#/" + r, 300);
       const t0 = Date.now();
       // wait for the page itself (a fixed sleep failed on slow networks while the page still said "กำลังเปิด…");
       // a page that never opens still fails after 15 s
@@ -39,6 +41,7 @@ try {
   // can the real site be installed as an app?
   const a = await browser.newPage({ width: 380, height: 820 });
   await a.goto(BASE, 3000);
+  ok(await a.until(`document.querySelector("#gate-title") && document.querySelector("#gate-title").textContent === "ติดตั้ง Mr News ก่อน"`, 15000), "live: a link opened in a browser shows 'ติดตั้ง Mr News ก่อน' first");
   ok(await a.until(`navigator.serviceWorker && navigator.serviceWorker.controller`, 20000), "live: the app's service worker takes control");
   const inst = await a.cdp("Page.getInstallabilityErrors");
   ok(!inst.installabilityErrors.length, "live: Edge says the site can be installed", JSON.stringify(inst.installabilityErrors));

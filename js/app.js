@@ -3,6 +3,7 @@
 import { h, store } from "./ui.js";
 import { CHAPTERS, chapterProgress } from "./book.js";
 import { startPwa } from "./pwa.js";
+import { showGate } from "./gate.js";
 
 startPwa();
 
@@ -113,5 +114,6 @@ async function route() {
   }
 }
 window.addEventListener("hashchange", route);
+showGate(); // "ติดตั้งก่อน" in a browser, the opening screen in the installed app; the book draws underneath
 window.addEventListener("mn-progress", () => markCurrent((location.hash.replace(/^#\/?/, "").split("/")[0])));
 route();
