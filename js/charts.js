@@ -206,7 +206,12 @@ export function lines(series, { height = 230, format = (v) => num(v), head = ["à
       svg.append(s("text", { x: left - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, class: "muted" }, format(v)));
     }
     const step = Math.max(1, Math.ceil(xs.length / Math.max(2, Math.floor(plotW / 70))));
-    xs.forEach((x, i) => { if (i % step === 0 || i === xs.length - 1) svg.append(s("text", { x: X(x), y: height - 6, "text-anchor": "middle", "font-size": 11, class: "muted" }, xLabel(x))); });
+    // date labels: the first hangs to the right of its point, the last to the left, so neither leaves the picture
+    xs.forEach((x, i) => {
+      if (!(i % step === 0 || i === xs.length - 1)) return;
+      const anchor = xs.length > 1 && i === 0 ? "start" : xs.length > 1 && i === xs.length - 1 ? "end" : "middle";
+      svg.append(s("text", { x: X(x), y: height - 6, "text-anchor": anchor, "font-size": 11, class: "muted" }, xLabel(x)));
+    });
     const ends = [];
     series.forEach((sr, si) => {
       const color = sr.color || SERIES[si];

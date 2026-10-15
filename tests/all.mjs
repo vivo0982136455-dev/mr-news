@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { serve } from "./serve.mjs";
 import { launch, sleep } from "./browser.mjs";
+import { LAYOUT_CHECK } from "./checks.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const quick = process.argv.includes("quick");
@@ -72,26 +73,7 @@ const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes"]
 const SIZES = quick ? [[380, 820]] : [[380, 820], [768, 1024], [1440, 900]];
 const THEMES_ = quick ? [false] : [false, true];
 
-const LAYOUT_CHECK = `
-  const vw = window.innerWidth;
-  const out = [];
-  if (document.documentElement.scrollWidth > vw + 1) out.push("page wider than screen: " + document.documentElement.scrollWidth);
-  const scrollers = ".chips,.seg,.table-wrap,.minis,.toc,.prompt,pre";
-  for (const el of document.querySelectorAll("main *")) {
-    if (el.closest(scrollers) || el.closest("svg")) continue;
-    const r = el.getBoundingClientRect();
-    if (r.width && r.right > vw + 1) { out.push("sticks out: <" + el.tagName.toLowerCase() + " class=" + el.className + "> " + (el.textContent || "").slice(0, 40)); if (out.length > 4) break; }
-  }
-  for (const c of document.querySelectorAll(".chart")) { if (!c.hidden && c.offsetParent && !c.querySelector("svg")) out.push("chart not drawn"); }
-  for (const svg of document.querySelectorAll(".chart svg, .figure svg")) {
-    const vb = svg.viewBox.baseVal;
-    for (const t of svg.querySelectorAll("text")) { const b = t.getBBox(); if (b.width && (b.x < -1 || b.x + b.width > vb.width + 1)) { out.push("text outside its picture: " + t.textContent.slice(0, 30)); break; } }
-  }
-  const txt = document.querySelector("main").innerText;
-  if (/undefined|NaN|\\[object/.test(txt)) out.push("bad text: " + (txt.match(/.{0,30}(undefined|NaN|\\[object).{0,20}/) || [""])[0]);
-  if (txt.includes("เปิดหน้านี้ไม่ได้")) out.push("page failed: " + txt.slice(0, 200));
-  if (!document.querySelector("main h1")) out.push("no heading");
-  return out;`;
+// LAYOUT_CHECK lives in checks.mjs (shared with tests/live.mjs)
 
 try {
   for (const [w, hgt] of SIZES) for (const dark of THEMES_) {
@@ -122,7 +104,8 @@ try {
   await p.goto(BASE + "#/news", 2000);
   await p.eval(`localStorage.clear(); return true;`);
   await p.goto(BASE + "#/news", 2000);
-  await p.eval(`[...document.querySelectorAll(".vcard button")].find(b => b.textContent.includes("จดลงสมุด")).click(); return true;`);
+  ok(await p.until(`document.querySelector(".vcard button")`, 20000), "news page shows video cards"); // a slow network must not crash the run
+  await p.eval(`[...document.querySelectorAll(".vcard button")].find(b => b.textContent.includes("จดลงสมุด"))?.click(); return true;`);
   ok(await p.until(`JSON.parse(localStorage.getItem("mn_notes") || "[]").length === 1`), "📌 on a video card saves one note");
   await p.goto(BASE + "#/notes", 1500);
   ok(await p.eval(`return document.querySelectorAll(".note-item").length === 1;`), "the note shows in the notebook");
