@@ -1,10 +1,15 @@
-// The cover: today's 3 numbers + today's idea, the chapters with progress, and the 10-minute daily routine.
-import { h, pct, dur, thDay, freshness, info, EST_TEXT } from "../ui.js";
+// The cover: "เริ่มที่นี่" the first time, then "วันนี้" (3 clips that did far better than their channel's usual in
+// Win's themes, 1 idea, 1 small task, this week's plan), today's 3 numbers, the chapters, the 10-minute routine.
+import { h, pct, dur, thDay, freshness, info, EST_TEXT, videoCard, store, toast } from "../ui.js";
 import { tryJSON } from "../data.js";
 import { CHAPTERS, chapterProgress } from "../book.js";
-import { THEME_BY_ID } from "../shared/themes.js";
-import { allNotes } from "../notes-store.js";
+import { THEME_BY_ID, isShort } from "../shared/themes.js";
+import { allNotes, noteFromVideo } from "../notes-store.js";
 import { installState, askInstall, onInstallChange, isIOS } from "../pwa.js";
+import { getSetup, weekItems, myStreak, addToPlan, todayDone, setTodayDone, STEPS, PLAN_MAX } from "../my-store.js";
+import { setupForm } from "./start.js";
+
+const redraw = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
 
 export async function render(main) {
   const [latest, ideas] = await Promise.all([tryJSON("data/latest.json"), tryJSON("data/ideas.json")]);
@@ -17,7 +22,9 @@ export async function render(main) {
     h("p", { style: { maxWidth: "62ch", color: "var(--ink-2)" } }, "หนังสือที่อัปเดตตัวเองทุกวัน: ดูว่าคลิปไทย-ลาวแบบไหนกำลังได้วิว (Mr News) → คิดไอเดียของเราเอง (Mr Idea) → เรียนทำคลิปทั้งแบบคนจริงและ AI → จดทุกอย่างในสมุด"),
     h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/news" }, "📰 เปิด Mr News วันนี้"), h("a", { class: "btn", href: "#/idea" }, "💡 ไอเดียวันนี้"))));
 
-  main.append(installCard());
+  const setup = getSetup();
+  if (!setup) main.append(h("div", { class: "section" }, h("h2", {}, "👋 เริ่มที่นี่ ", h("small", {}, "ครั้งแรกเท่านั้น · ข้ามได้ทุกข้อ")), setupForm(redraw)));
+  else main.append(todayCard(setup, latest, ideas));
 
   if (latest) {
     const c = latest.creator;
@@ -37,6 +44,8 @@ export async function render(main) {
         h("a", { class: "tile", href: "#/idea", style: { textDecoration: "none", color: "inherit" } },
           h("div", { class: "label" }, "ไอเดียเด็ดวันนี้ (วันๆ One One)"), h("div", { class: "value", style: { fontSize: "1.15rem" } }, card?.couple?.t || "–"), h("div", { class: "delta" }, card ? `จากหมวด ${card.icon} ${card.name}` : "")))));
   }
+
+  main.append(installCard()); // below the day's content: it is useful once, the day's content every day
 
   main.append(h("div", { class: "section" }, h("h2", {}, "สารบัญ"),
     h("div", { class: "chapters" },
@@ -78,6 +87,57 @@ function installCard() {
   onInstallChange(draw);
   draw();
   return box;
+}
+
+// ---------------------------------------------------------------- "วันนี้": what to look at and do today
+const STEP_TASK = { shot: "ถ่าย 3-5 ท่อนสั้น แนวตั้ง", cut: "ตัดให้เหลือไม่เกิน 60 วินาที ใส่ซับ", posted: "โพสต์ แล้วกลับมาติ๊ก \"โพสต์แล้ว\"" };
+const FREE_TASK = {
+  3: "เปิด Mr Idea แล้วกด ➕ ใส่แผนสัปดาห์ 1 ไอเดีย",
+  10: "ถ่ายท่อนสั้นชีวิตจริง 3 ท่อน (แนวตั้ง นอกที่ทำงาน ไม่ให้เห็นบัตรหรือเอกสาร)",
+  30: "เปิดแม่แบบบทใน Mr Idea เขียนบท 1 เรื่อง แล้วถ่ายเลย",
+};
+export function smallTask(setup, items) {
+  const next = items.find((x) => !x.posted);
+  if (next) {
+    const step = STEPS.map(([k]) => k).find((k) => !next[k]);
+    return `ไอเดีย “${next.t}”: ${STEP_TASK[step]}`;
+  }
+  if (items.length && items.every((x) => x.posted)) return "แผนสัปดาห์นี้เสร็จแล้ว 🎉 — วันนี้ดูผลคลิปแล้วจดตัวเลขในหน้า \"ผลคลิปของเรา\"";
+  return FREE_TASK[setup.minutes] || FREE_TASK[3];
+}
+
+function todayCard(setup, latest, ideas) {
+  const items = weekItems();
+  const st = myStreak();
+  const themes = new Set(setup.themes || []);
+  const fmtOk = (v) => !setup.format || setup.format === "both" || (setup.format === "short") === isShort(v);
+  const flagged = store.get("mn_flagged", {});
+  const pool = (latest?.creator?.outliers || []).filter((v) => !flagged[v.ch] && fmtOk(v));
+  let clips = themes.size ? pool.filter((v) => v.themes.some((t) => themes.has(t))) : pool;
+  if (clips.length < 3) clips = [...clips, ...pool.filter((v) => !clips.includes(v))];
+  clips = clips.slice(0, 3);
+  const cards = ideas?.cards || [];
+  const card = cards.find((c) => themes.has(c.theme)) || cards[0];
+  const idea = card?.couple;
+
+  const done = h("input", { type: "checkbox", checked: todayDone(), onchange: (e) => { setTodayDone(e.target.checked); if (e.target.checked) toast("เยี่ยมมาก! วันนี้ทำแล้ว ✓"); } });
+  return h("div", { class: "section today" },
+    h("h2", {}, "วันนี้ของ Win ", h("small", {}, h("a", { href: "#/start" }, "ตั้งค่าหน้าแรก"))),
+    setup.when || setup.what ? h("p", { class: "plan-line" }, `📌 หลังจาก${setup.when || "…"} ฉันจะ${setup.what || "…"}`) : null,
+    h("label", { class: "card task" }, done, h("span", {}, h("b", {}, "งานเล็ก 1 อย่าง: "), smallTask(setup, items))),
+    h("a", { class: "card plan-mini", href: "#/plan" },
+      h("b", {}, "🗓️ แผนสัปดาห์นี้: "),
+      items.length ? `${items.filter((x) => x.posted).length}/${items.length} โพสต์แล้ว` : `ยังว่าง — เลือก ${PLAN_MAX} ไอเดียจาก Mr Idea`,
+      st.streak ? ` · ทำครบต่อเนื่อง ${st.streak} สัปดาห์ 🔥` : "", " →"),
+    idea ? h("div", { class: "card" },
+      h("div", { class: "note" }, `💡 ไอเดียของวันนี้ · หมวด ${card.icon} ${card.name}`),
+      h("div", { class: "idea-t" }, idea.t), h("div", { class: "hook" }, "🎬 2 วินาทีแรก: ", idea.hook),
+      h("div", { class: "row", style: { marginTop: "8px" } },
+        h("button", { class: "btn small", type: "button", onclick: () => { if (addToPlan({ t: idea.t, page: "วันๆ One One", src: `Mr Idea · ${card.name}` })) redraw(); } }, "➕ ใส่แผนสัปดาห์"),
+        h("a", { class: "btn small", href: "#/idea" }, "ดูไอเดียทั้งหมด"))) : null,
+    clips.length ? h("div", {},
+      h("h3", {}, "3 คลิปที่ได้วิวเกินปกติของช่องตัวเอง ", h("small", { class: "note" }, themes.size ? "ในหมวดที่ Win เลือก" : "ทุกหมวด")),
+      h("div", { class: "vlist" }, clips.map((v, i) => videoCard(v, i + 1, { onSave: (x) => noteFromVideo(x), why: true, showGain: false })))) : null);
 }
 
 function chapterLink(id, icon, title, sub, p) {

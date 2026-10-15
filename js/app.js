@@ -15,6 +15,9 @@ const PAGES = {
   ai: () => import("./pages/chapter.js"),
   learn: () => import("./pages/learn.js"),
   notes: () => import("./pages/notes.js"),
+  start: () => import("./pages/start.js"),
+  plan: () => import("./pages/plan.js"),
+  results: () => import("./pages/results.js"),
 };
 const BOTTOM = [
   ["", "🏠", "หน้าแรก"],
@@ -50,6 +53,8 @@ function shell() {
     h("nav", { "aria-label": "สารบัญ" },
       h("div", { class: "ch" }, "ทุกวัน"),
       link("news", "📰", "Mr News"), link("idea", "💡", "Mr Idea"), link("notes", "📒", "สมุดโน้ตของ Win"),
+      h("div", { class: "ch" }, "งานของ Win"),
+      link("plan", "🗓️", "แผนสัปดาห์นี้"), link("results", "📈", "ผลคลิปของเรา"),
       h("div", { class: "ch" }, "บทเรียน"),
       CHAPTERS.map((c) => link(c.id, c.icon, c.title, true)),
       h("div", { class: "ch" }, "อื่นๆ"), link("", "🏠", "หน้าแรก / ปก")),
@@ -68,7 +73,7 @@ function markCurrent(id) {
   const learnIds = new Set(["learn", ...CHAPTERS.map((c) => c.id)]);
   for (const a of document.querySelectorAll(".side nav a, .bottom a")) {
     const aid = a.getAttribute("data-id");
-    const on = aid === id || (a.closest(".bottom") && aid === "learn" && learnIds.has(id));
+    const on = aid === id || (a.closest(".bottom") && ((aid === "learn" && learnIds.has(id)) || (aid === "notes" && (id === "plan" || id === "results")) || (aid === "" && id === "start")));
     if (on) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   }

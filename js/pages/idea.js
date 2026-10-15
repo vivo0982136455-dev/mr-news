@@ -1,9 +1,47 @@
 // Mr Idea: today's best idea for each page, built from Mr News (themes that are big + rising) and the idea bank.
 // Ends with a ready prompt for Gemini so Win can go deeper with his own life details.
-import { h, num, pct, signedPct, dur, thDay, section, store, ytUrl, ytThumb, promptBox, mdEl, freshness } from "../ui.js";
+import { h, num, pct, signedPct, dur, thDay, section, store, ytUrl, ytThumb, promptBox, mdEl, freshness, toast } from "../ui.js";
 import { getJSON } from "../data.js";
 import { addNote } from "../notes-store.js";
 import { MIX, IDEAS } from "../shared/ideabank.js";
+import { addToPlan } from "../my-store.js";
+import { STYLE_NAME, thaiDay } from "../shared/patterns.js";
+
+// ⏭ ข้าม: show the next idea of the same theme and page from the bank (resets every day)
+const skips = () => { const s = store.get("mn_idea_skip", {}); return s.day === thaiDay() ? s.n || {} : {}; };
+function skip(key) {
+  const n = skips();
+  n[key] = (n[key] || 0) + 1;
+  store.set("mn_idea_skip", { day: thaiDay(), n });
+}
+// the idea to show: today's idea from the robot, moved on by the skips of today
+function ideaFor(c, side) {
+  const list = IDEAS[c.theme]?.[side] || [];
+  const base = Math.max(0, list.findIndex((x) => x.t === c[side]?.t));
+  const k = skips()[`${c.theme}|${side}`] || 0;
+  return list.length ? { idea: list[(base + k) % list.length], left: list.length - 1 - (k % list.length), total: list.length } : { idea: c[side], left: 0, total: 1 };
+}
+
+// a script to fill in: opening line / 3 shots / ending / 3 titles / cover - saved to the notebook
+function scriptText(idea, c) {
+  return `ไอเดีย: ${idea.t}
+ประโยคเปิด (2 วินาทีแรก): ${idea.hook}
+
+ช็อต 1: ${idea.plan[0] || ""}
+ช็อต 2: ${idea.plan[1] || ""}
+ช็อต 3: ${idea.plan.slice(2).join(" / ")}
+
+ปิด (มุกสุดท้าย หรือคำถามชวนคอมเมนต์):
+
+ชื่อคลิป 3 แบบ (เลือก 1):
+1. ${idea.t}
+2. (แบบคำถาม) ${idea.t}…ได้ไหม?
+3. (แบบเล่าเรื่อง) เมื่อ…
+
+ภาพปก: หน้าคนตอนช่วงพีคของเรื่อง + ตัวหนังสือไม่เกิน 4 คำ
+ความยาวเป้าหมาย: ${c.medianSec ? dur(Math.min(c.medianSec, 60)) + " นาที" : "ไม่เกิน 1 นาที"} · แนวตั้ง · ถ่ายนอกที่ทำงาน ไม่ให้เห็นบัตรหรือเอกสาร
+ทำไมคนจะดูจนจบ: ${idea.why}`;
+}
 
 // how many ready-written ideas the bank holds (the theme is chosen from real data, the idea text is not)
 const BANK = Object.values(IDEAS).reduce((a, b) => a + (b.couple?.length || 0) + (b.ai?.length || 0), 0);
@@ -37,7 +75,7 @@ export async function render(main) {
     h("div", { class: "grid g2" },
       h("div", { class: "card" }, h("h3", {}, "แฮชแท็กในคลิปที่วิวเยอะ"), h("div", { class: "row" }, (data.tags || []).map((t) => h("span", { class: "pill" }, t)))),
       h("div", { class: "card" }, h("h3", {}, "คนไทยค้นอะไรใน Google วันนี้"), h("div", { class: "row" }, (data.trends || []).map((t) => h("span", { class: "pill" }, t))),
-        h("p", { class: "note", style: { marginTop: "6px" } }, "ส่วนใหญ่เป็นข่าว/กีฬา ใช้เป็นมุกเล็กๆ ได้ แต่อย่าทำคลิปเรื่องการเมือง ศาสนา หรือสถาบันฯ")))));
+        h("p", { class: "note", style: { marginTop: "6px" } }, "ส่วนใหญ่เป็นข่าว/กีฬา/ดารา ใช้เป็นมุกเล็กๆ ได้ แต่อย่าทำคลิปเรื่องการเมือง ศาสนา สถาบันฯ และ ", h("b", {}, "ไม่ใช้เรื่องซุบซิบคนจริง"), " (ดารา คนดัง คนในข่าว) — เสี่ยงทั้งถูกฟ้องและผิดกฎของเพจ")))));
 
   main.append(geminiSection(cards));
 }
@@ -49,20 +87,42 @@ function ideaCard(c, big) {
     h("span", {}, `${c.count} คลิป · ${num(c.views)} วิว/24 ชม.`),
     c.medianSec ? h("span", {}, `ยาวกลางๆ ${dur(c.medianSec)} นาที`) : null,
     c.shortShare != null ? h("span", {}, `Shorts ${pct(c.shortShare)}`) : null);
-  const side = (cls, label, idea, page) => idea ? h("div", { class: cls },
-    h("h4", {}, label),
-    h("div", { class: "idea-t" }, idea.t),
-    h("div", { class: "hook" }, "🎬 2 วินาทีแรก: ", idea.hook),
-    h("ol", {}, idea.plan.map((p) => h("li", {}, p))),
-    h("div", { class: "why" }, "ทำไมคนดูจนจบ: ", idea.why),
-    h("div", { class: "row", style: { marginTop: "8px" } }, h("button", { class: "btn small", onclick: () => addNote({ kind: "ไอเดีย", page, topic: idea.t, format: c.medianSec ? `ประมาณ ${dur(c.medianSec)} นาที` : "", source: `Mr Idea · ${c.name}`, why: idea.why, plan: idea.hook + "\n" + idea.plan.map((p, i) => `${i + 1}. ${p}`).join("\n") }) }, "📌 เก็บไอเดียนี้"))) : null;
+  // one side (couple page / AI page): the idea, then เก็บ / ใส่แผน / ข้าม, and a script to fill in
+  const side = (cls, label, sideKey, page) => {
+    const box = h("div", { class: cls });
+    const draw = () => {
+      const { idea, left, total } = ideaFor(c, sideKey);
+      if (!idea) return box.replaceChildren();
+      const script = h("textarea", { "aria-label": "แม่แบบบท" }, scriptText(idea, c));
+      box.replaceChildren(
+        h("h4", {}, label),
+        h("div", { class: "idea-t" }, idea.t),
+        h("div", { class: "hook" }, "🎬 2 วินาทีแรก: ", idea.hook),
+        h("ol", {}, idea.plan.map((p) => h("li", {}, p))),
+        h("div", { class: "why" }, "ทำไมคนดูจนจบ: ", idea.why),
+        h("div", { class: "acts-row" },
+          h("button", { class: "btn small", type: "button", onclick: () => addNote({ kind: "ไอเดีย", page, topic: idea.t, format: c.medianSec ? `ประมาณ ${dur(c.medianSec)} นาที` : "", source: `Mr Idea · ${c.name}`, why: idea.why, plan: idea.hook + "\n" + idea.plan.map((p, i) => `${i + 1}. ${p}`).join("\n") }) }, "📌 เก็บ"),
+          h("button", { class: "btn small", type: "button", onclick: () => addToPlan({ t: idea.t, page, src: `Mr Idea · ${c.name}` }) }, "➕ ใส่แผนสัปดาห์"),
+          h("button", { class: "btn small", type: "button", title: `ไอเดียในหมวดนี้ของเพจนี้มี ${total} ไอเดีย`, onclick: () => { skip(`${c.theme}|${sideKey}`); toast(left > 0 ? "ไอเดียถัดไป" : "วนกลับไอเดียแรกของหมวดนี้"); draw(); } }, `⏭ ข้าม (${total} ไอเดีย)`)),
+        h("details", { class: "more script-box" }, h("summary", {}, "📝 แม่แบบบท (แก้ได้ แล้วบันทึกลงสมุด)"),
+          script,
+          h("div", { class: "row", style: { marginTop: "6px" } },
+            h("button", { class: "btn small", type: "button", onclick: () => addNote({ kind: "บท / มุก", page, topic: idea.t, source: `Mr Idea · ${c.name}`, plan: script.value }) }, "📒 บันทึกบทลงสมุด"))));
+    };
+    draw();
+    return box;
+  };
+  const styles = Object.entries(c.pattern?.styles || {}).filter(([, v]) => v >= 0.1).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${STYLE_NAME[k]} ${pct(v)}`);
+  const pattern = c.pattern ? h("div", { class: "pattern" }, h("b", {}, `รูปแบบของวันนี้ `), `(จาก ${c.pattern.n} คลิปจริงในหมวดนี้): `,
+    [c.medianSec ? `ยาวกลางๆ ${dur(c.medianSec)} นาที` : null, styles.length ? styles.join(" · ") : "ชื่อคลิปส่วนใหญ่เป็นประโยคธรรมดา", c.shortShare != null ? `Shorts ${pct(c.shortShare)}` : null].filter(Boolean).join(" · ")) : null;
   return h("div", { class: "idea", style: big ? { borderColor: "var(--brand)", borderWidth: "2px" } : {} },
     h("div", { class: "head" }, h("span", { class: "emoji" }, c.icon), h("div", {}, h("h3", { style: { margin: 0 } }, c.name), facts)),
     c.examples?.length ? h("details", { class: "more", open: big || undefined }, h("summary", {}, `หลักฐาน: คลิปจริงในหมวดนี้ (${c.examples.length})`),
       h("div", { class: "minis" }, c.examples.map((v) => h("a", { class: "mini", href: ytUrl(v.id), target: "_blank", rel: "noopener" },
         h("img", { src: ytThumb(v.id), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }), h("b", {}, v.t), h("span", {}, `${v.cn} · +${num(v.g)}`))))) : null,
     c.tags?.length ? h("div", { class: "row", style: { marginTop: "6px" } }, c.tags.map((t) => h("span", { class: "tag" }, t))) : null,
-    h("div", { class: "two" }, side("side-a", "🧡 วันๆ One One (คู่รักชีวิตจริง)", c.couple, "วันๆ One One"), side("side-b", "💜 เพจ AI (ตัวละครประจำ)", c.ai, "เพจ AI")));
+    pattern,
+    h("div", { class: "two" }, side("side-a", "🧡 วันๆ One One (คู่รักชีวิตจริง)", "couple", "วันๆ One One"), side("side-b", "💜 เพจ AI (ตัวละครประจำ)", "ai", "เพจ AI")));
 }
 
 // build a prompt for Gemini from a card + Win's page profile (kept in this browser)

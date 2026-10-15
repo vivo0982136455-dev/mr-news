@@ -38,6 +38,23 @@ const { THEMES } = await import(pathToFileURL(path.join(ROOT, "js/shared/themes.
 const { IDEAS } = await import(pathToFileURL(path.join(ROOT, "js/shared/ideabank.js")).href);
 for (const t of THEMES) ok(IDEAS[t.id]?.couple?.length && IDEAS[t.id]?.ai?.length, `idea bank has couple + AI ideas for ${t.id}`);
 for (const [id, b] of Object.entries(IDEAS)) for (const i of [...b.couple, ...b.ai]) ok(i.t && i.hook && i.plan?.length && i.why, `idea complete: ${id} / ${i.t}`);
+for (const [id, b] of Object.entries(IDEAS)) ok(b.couple.length >= 7 && b.ai.length >= 7, `idea bank: 7+ ideas per page for ${id} (no repeat within a week)`, `${b.couple.length} / ${b.ai.length}`);
+const allTitles = Object.values(IDEAS).flatMap((b) => [...b.couple, ...b.ai].map((i) => i.t));
+ok(new Set(allTitles).size === allTitles.length, "idea bank: no idea twice", allTitles.length);
+ok(!allTitles.some((t) => /หลาน/.test(t)), "idea bank: no idea that films children (the filming chapter forbids it)");
+
+// Win's own work: the streak with freezes, weeks, title styles
+const { streakOf, median } = await import(pathToFileURL(path.join(ROOT, "js/my-store.js")).href);
+ok(median([1000, 3000]) === 2000 && median([1, 5, 2]) === 2 && median([]) === null, "median: even count = average of the middle two");
+const { weekOf, titleStyles } = await import(pathToFileURL(path.join(ROOT, "js/shared/patterns.js")).href);
+const D = { items: [{ posted: true }] }, M = { items: [{ posted: false }] };
+ok(weekOf("2026-10-15") === "2026-10-12" && weekOf("2026-10-12") === "2026-10-12" && weekOf("2026-10-18") === "2026-10-12", "a week starts on Monday (Thai days)");
+ok(streakOf({ "2026-10-19": D, "2026-10-26": D, "2026-11-02": D }, "2026-11-09").streak === 3, "streak: 3 finished weeks = 3");
+const sf = streakOf({ "2026-10-19": D, "2026-10-26": M, "2026-11-02": D }, "2026-11-09");
+ok(sf.streak === 2 && sf.frozen === 1, "streak: one missed week uses a freeze, the streak goes on", JSON.stringify(sf));
+ok(streakOf({ "2026-10-05": D }, "2026-11-09").streak === 0, "streak: after the 2 freezes are used up, a missed week resets it");
+ok(streakOf({ "2026-11-09": D }, "2026-11-09").streak === 1, "streak: this week counts the moment it is finished");
+ok(JSON.stringify(titleStyles("ทำไมแมวกลัวแตงกวา? #cat")) === '["question"]' && titleStyles("เมื่อแฟนบอก “ไม่กิน” 5 เมนู").join(",") === "story,number,quote", "title styles are read from the title");
 // the theme reader on real titles (tests/themes-cases.mjs): traps must all be right; real titles measured
 const { themesOf, isCopyText, SENSITIVE, MEDIA_CHANNEL: MEDIA } = await import(pathToFileURL(path.join(ROOT, "js/shared/themes.js")).href);
 const { CASES, TRAPS, HELD_OUT } = await import(pathToFileURL(path.join(ROOT, "tests/themes-cases.mjs")).href);
@@ -127,7 +144,7 @@ const PORT = 8790;
 const server = await serve(PORT);
 const browser = await launch({ port: 9447 });
 const BASE = `http://127.0.0.1:${PORT}/`;
-const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes"];
+const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results"];
 const SIZES = quick ? [[380, 820]] : [[380, 820], [768, 1024], [1440, 900]];
 const THEMES_ = quick ? [false] : [false, true];
 let slowest = 0;
@@ -202,6 +219,82 @@ try {
   ok(await k.until(`document.querySelector("main").innerText.includes("Mr News วันที่")`, 15000), "lesson numbers are read from today's data (no fixed 86%)");
   await k.eval(`localStorage.clear(); return true;`);
   await k.close();
+
+  // ---- from reading to doing: setup, today, weekly plan, Mr Idea tools, results + Sunday review, backup ----
+  const c = await browser.newPage({ width: 380, height: 820 });
+  await c.goto(BASE + "#/notes", 300);
+  await c.eval(`localStorage.clear(); return true;`);
+  await c.goto(BASE + "#/plan", 300);
+  await c.eval(`location.hash = "#/"; return true;`);
+  ok(await c.until(`document.querySelector("form.setup")`, 15000), "first visit: the cover asks the 3 setup questions");
+  await c.eval(`const f = document.querySelector("form.setup");
+    [...f.querySelectorAll("button")].find((b) => b.textContent.includes("คู่รัก")).click();
+    [...f.querySelectorAll("button")].find((b) => b.textContent === "Shorts / Reels").click();
+    [...f.querySelectorAll("button")].find((b) => b.textContent === "10 นาที").click();
+    const [when, what] = f.querySelectorAll("input[type=text]"); when.value = "เลิกกะ"; what.value = "ถ่ายท่อนสั้น 3 ท่อน";
+    f.requestSubmit(); return true;`);
+  ok(await c.until(`document.querySelector(".today")`, 8000), "after the answers the cover shows \"วันนี้ของ Win\"");
+  const today = await c.eval(`return document.querySelector(".today").innerText;`);
+  ok(today.includes("หลังจากเลิกกะ ฉันจะถ่ายท่อนสั้น 3 ท่อน"), "today card repeats Win's plan sentence", today.slice(0, 120));
+  ok(today.includes("ถ่ายท่อนสั้นชีวิตจริง 3 ท่อน"), "10 minutes a day + empty plan -> the 10-minute task");
+  ok(await c.eval(`return document.querySelectorAll(".today .vcard").length === 3 && document.querySelectorAll(".today .vcard .info.x").length === 3;`), "today card: 3 clips far above their channel's usual");
+  ok(await c.eval(`const s = JSON.parse(localStorage.getItem("mn_setup")); return s.themes[0] === "couple" && s.format === "short" && s.minutes === 10;`), "setup answers are kept in this browser");
+  const layoutToday = await c.eval(LAYOUT_CHECK);
+  ok(!layoutToday.length, "380px: the today card fits the screen", layoutToday.join(" | "));
+  await c.shot("today-380.png");
+  await c.eval(`[...document.querySelectorAll(".today button")].find((b) => b.textContent.includes("ใส่แผนสัปดาห์")).click(); return true;`);
+  ok(await c.until(`document.querySelector(".today").innerText.includes("0/1 โพสต์แล้ว")`, 8000), "➕ from the today card puts the idea in this week's plan");
+  ok(await c.eval(`return document.querySelector(".today").innerText.includes("ไอเดีย “");`), "with a plan, the small task becomes the plan's next step");
+
+  await c.goto(BASE + "#/idea", 300);
+  ok(await c.until(`document.querySelector(".idea .pattern")`, 15000), "Mr Idea shows today's pattern from real clips");
+  const ideaBefore = await c.eval(`return document.querySelector(".idea .side-a .idea-t").textContent;`);
+  await c.eval(`[...document.querySelector(".idea .side-a").querySelectorAll("button")].find((b) => b.textContent.startsWith("⏭")).click(); return true;`);
+  ok(await c.until(`document.querySelector(".idea .side-a .idea-t").textContent !== ${JSON.stringify(ideaBefore)}`, 3000), "⏭ ข้าม shows the next idea of the same theme", ideaBefore);
+  await c.eval(`[...document.querySelector(".idea .side-a").querySelectorAll("button")].find((b) => b.textContent.includes("ใส่แผนสัปดาห์")).click(); return true;`);
+  ok(await c.eval(`const p = JSON.parse(localStorage.getItem("mn_plan")); return Object.values(p.weeks)[0].items.length === 2;`), "➕ ใส่แผนสัปดาห์ in Mr Idea adds a second idea");
+  ok(await c.eval(`const d = document.querySelector(".idea .script-box"); d.open = true; return d.querySelector("textarea").value.includes("ประโยคเปิด") && d.querySelector("textarea").value.includes("ชื่อคลิป 3 แบบ");`), "📝 แม่แบบบท opens a script to fill in");
+  ok(await c.eval(`return document.querySelector("main").innerText.includes("ไม่ใช้เรื่องซุบซิบคนจริง");`), "Google Trends box warns: no gossip about real people");
+  const layoutIdea = await c.eval(LAYOUT_CHECK);
+  ok(!layoutIdea.length, "380px: Mr Idea with its new buttons fits the screen", layoutIdea.join(" | "));
+
+  await c.goto(BASE + "#/plan", 300);
+  ok(await c.until(`document.querySelectorAll(".plan-item").length === 2`, 8000), "the plan page lists the 2 planned ideas");
+  await c.eval(`[...document.querySelectorAll(".plan-item")[0].querySelectorAll(".step")].find((l) => l.textContent.includes("โพสต์แล้ว")).querySelector("input").click(); return true;`);
+  ok(await c.until(`document.querySelectorAll(".plan-item")[0].querySelectorAll(".step.on").length === 3`, 3000), "ticking โพสต์แล้ว ticks ถ่ายแล้ว and ตัดแล้ว too");
+  await c.eval(`[...document.querySelectorAll(".plan-item")[1].querySelectorAll(".step")].find((l) => l.textContent.includes("โพสต์แล้ว")).querySelector("input").click(); return true;`);
+  ok(await c.until(`document.querySelector(".celebrate") && document.querySelector("main").innerText.includes("1 สัปดาห์ 🔥")`, 3000), "finishing the week celebrates at once and counts the streak");
+  const layoutPlan = await c.eval(LAYOUT_CHECK);
+  ok(!layoutPlan.length, "380px: the plan page fits the screen", layoutPlan.join(" | "));
+  await c.shot("plan-380.png");
+
+  await c.goto(BASE + "#/results", 300);
+  ok(await c.until(`document.querySelector("details.card form.form")`, 8000), "results page offers the clip form");
+  const addClip = (t, views) => c.eval(`const f = document.querySelector("details.card form.form");
+    f.querySelector("input[type=text]").value = ${JSON.stringify(t)}; f.querySelector("input[type=number]").value = ${views}; f.requestSubmit(); return true;`);
+  await addClip("คลิปทดสอบ 1", 1000);
+  await c.until(`document.querySelectorAll("table.data tbody tr").length === 1`, 3000);
+  await c.eval(`document.querySelector("details.card").open = true; return true;`);
+  await addClip("คลิปทดสอบ 2", 3000);
+  ok(await c.until(`document.querySelectorAll("table.data tbody tr").length === 2 && document.querySelector("table.data").innerText.includes("×3")`, 3000), "own clips: 3,000 views vs own usual 1,000 shows ×3");
+  await c.eval(`const forms = document.querySelectorAll("form"); const f = forms[forms.length - 1];
+    f.querySelectorAll("input[type=text]")[0].value = "ถ้าเปิดด้วยคำถาม คนจะดูต่อมากขึ้น"; f.querySelectorAll("input[type=text]")[1].value = "เปิดด้วยคำถามทุกคลิป"; f.requestSubmit(); return true;`);
+  ok(await c.until(`JSON.parse(localStorage.getItem("mn_reviews") || "[]").length === 1`, 3000), "the Sunday review is saved");
+  await c.eval(`[...document.querySelectorAll("button")].find((b) => b.textContent === "ส่งตัวเลข").click(); return true;`);
+  ok(await c.eval(`return JSON.parse(localStorage.getItem("mn_ypp_up")) === 2;`), "results send the YouTube numbers to the YPP calculator");
+  const layoutRes = await c.eval(LAYOUT_CHECK);
+  ok(!layoutRes.length, "380px: the results page fits the screen", layoutRes.join(" | "));
+  await c.shot("results-380.png");
+
+  await c.goto(BASE + "#/notes", 300);
+  await c.until(`[...document.querySelectorAll("button")].some((b) => b.textContent.includes("สำรองเป็นไฟล์"))`, 8000);
+  const backup = await c.eval(`let blob = null; const real = URL.createObjectURL; URL.createObjectURL = (b) => { blob = b; return "blob:test"; };
+    [...document.querySelectorAll("button")].find((b) => b.textContent.includes("สำรองเป็นไฟล์")).click();
+    URL.createObjectURL = real; return blob ? JSON.parse(await blob.text()) : null;`);
+  ok(backup && backup.version === 2 && backup.mine?.mn_plan && backup.mine?.mn_results?.length === 2 && backup.mine?.mn_reviews?.length === 1 && backup.mine?.mn_setup,
+    "the backup file carries the setup, plan, results and reviews", JSON.stringify(Object.keys(backup?.mine || {})));
+  await c.eval(`localStorage.clear(); return true;`);
+  await c.close();
 
   // ---- honest time labels ----
   const t = await browser.newPage({ width: 380, height: 820 });

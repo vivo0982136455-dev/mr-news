@@ -1,6 +1,7 @@
 // สมุดโน้ตของ Win: trends, ideas, scripts, own results. Lives in this browser only; backup = export file.
-import { h, thTime, toast, copy } from "../ui.js";
+import { h, thTime, toast, copy, store } from "../ui.js";
 import { allNotes, saveNotes, addNote, PAGES_FOR, KINDS } from "../notes-store.js";
+import { KEYS as MY_KEYS } from "../my-store.js";
 
 const FIELDS = [
   ["topic", "หัวข้อ / ชื่อคลิป / ไอเดีย", "input", true],
@@ -20,7 +21,8 @@ export async function render(main) {
   main.append(h("div", { class: "page-head" },
     h("h1", {}, "📒 สมุดโน้ตของ Win"),
     h("p", {}, "จดเทรนด์ ไอเดีย บท และผลคลิปของเราไว้ที่เดียว กด 📌 ในหน้า Mr News / Mr Idea ก็จดมาที่นี่อัตโนมัติ"),
-    h("div", { class: "warn" }, "🔒 โน้ตเก็บในเบราว์เซอร์นี้เท่านั้น (ไม่ขึ้นเว็บ ไม่มีใครเห็น) ถ้าล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่อง โน้ตจะหาย — กด \"สำรองเป็นไฟล์\" เป็นประจำ")));
+    h("div", { class: "row", style: { margin: "0 0 10px" } }, h("a", { class: "btn", href: "#/plan" }, "🗓️ แผนสัปดาห์นี้"), h("a", { class: "btn", href: "#/results" }, "📈 ผลคลิปของเรา")),
+    h("div", { class: "warn" }, "🔒 โน้ต แผนสัปดาห์ และผลคลิป เก็บในเบราว์เซอร์นี้เท่านั้น (ไม่ขึ้นเว็บ ไม่มีใครเห็น) ถ้าล้างข้อมูลเบราว์เซอร์หรือเปลี่ยนเครื่องจะหาย — กด \"สำรองเป็นไฟล์\" เป็นประจำ (ไฟล์เดียวเก็บครบทุกอย่าง)")));
 
   // ---- the form ----
   const inputs = {};
@@ -85,7 +87,9 @@ export async function render(main) {
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
   function exportJson() {
-    download(`mr-news-notes-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: "mr-news", version: 1, notes: allNotes() }, null, 1), "application/json");
+    // version 2 (Oct 2026) also carries Win's setup, weekly plan, clip results and Sunday reviews
+    const mine = Object.fromEntries(MY_KEYS.map((k) => [k, store.get(k, null)]).filter(([, v]) => v != null));
+    download(`mr-news-notes-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: "mr-news", version: 2, notes: allNotes(), mine }, null, 1), "application/json");
   }
   function exportCsv() {
     const cols = ["at", "kind", "page", "topic", "source", "link", "channel", "format", "sound", "views", "why", "plan"];
@@ -103,7 +107,18 @@ export async function render(main) {
       const have = new Set(allNotes().map((n) => n.id));
       const add = incoming.filter((n) => n && n.id && n.topic && !have.has(n.id)).map((n) => Object.fromEntries(Object.entries(n).map(([k, v]) => [k, String(v).slice(0, 5000)])));
       saveNotes([...add, ...allNotes()]);
-      toast(`เพิ่ม ${add.length} โน้ตจากไฟล์`);
+      // plan / results / reviews: lists are merged by id, the setup and plan are taken only when this browser has none
+      let more = 0;
+      for (const [k, v] of Object.entries(j.mine || {})) {
+        if (!MY_KEYS.includes(k) || v == null) continue;
+        const cur = store.get(k, null);
+        if (Array.isArray(v)) {
+          const have = new Set((cur || []).map((x) => x.id));
+          const extra = v.filter((x) => x && x.id && !have.has(x.id));
+          if (extra.length) { store.set(k, [...(cur || []), ...extra]); more += extra.length; }
+        } else if (cur == null && typeof v === "object") { store.set(k, v); more++; }
+      }
+      toast(`เพิ่ม ${add.length} โน้ตจากไฟล์` + (more ? ` และงานของ Win ${more} รายการ` : ""));
       draw();
     } catch (err) {
       toast("เปิดไฟล์ไม่ได้: " + err.message);

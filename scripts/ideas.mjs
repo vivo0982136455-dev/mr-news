@@ -2,6 +2,7 @@
 // and one idea per page from the idea bank, rotated by date so the same theme gives a new idea tomorrow.
 import { THEME_BY_ID, isShort } from "../js/shared/themes.js";
 import { IDEAS } from "../js/shared/ideabank.js";
+import { titleStyles, TITLE_STYLES } from "../js/shared/patterns.js";
 
 const FIT_WEIGHT = [0.3, 0.6, 0.85, 1];
 const dayNumber = (day) => Math.floor(Date.parse(day + "T00:00:00Z") / 864e5);
@@ -34,6 +35,8 @@ export function buildIdeas(latest, pastDays = []) {
       medianSec: vids.length ? [...vids.map((v) => v.d)].sort((a, b) => a - b)[Math.floor(vids.length / 2)] : null,
       examples: vids.slice(0, 4).map((v) => ({ id: v.id, t: v.t, cn: v.cn, g: v.g, d: v.d, m: v.m })),
       tags: (c.tags || []).filter((tg) => vids.some((v) => v.t.toLowerCase().includes(tg.k))).slice(0, 5).map((tg) => tg.k),
+      // "today's pattern": how the real top clips of this theme are made (share of titles of each style)
+      pattern: vids.length ? { n: vids.length, styles: Object.fromEntries(TITLE_STYLES.map(([id]) => [id, vids.filter((v) => titleStyles(v.t).includes(id)).length / vids.length])) } : null,
       couple: pickIdea(bank.couple, 0),
       ai: pickIdea(bank.ai, 1),
     });

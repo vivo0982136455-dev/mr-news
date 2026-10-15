@@ -3,6 +3,7 @@
 // these ideas day by day. House rules: no real people, companies or brands; no monarchy, politics or religion;
 // never film at the workplace or show cards / documents; every idea must be shootable at home or a market.
 // Fields: t = title, hook = the first 2 seconds, plan = shots, why = why viewers stay.
+import { MORE } from "./ideabank-more.js";
 
 export const IDEAS = {
   couple: {
@@ -49,7 +50,7 @@ export const IDEAS = {
     couple: [
       { t: "โทรหาแม่ทั้งสองบ้าน", hook: "“แม่เธอกับแม่ฉัน ถามเหมือนกันไหม?”", plan: ["ถามคำถามเดียวกันกับแม่ทั้งสอง (ขออนุญาตก่อนถ่าย)", "ตัดสลับคำตอบ", "สรุปว่าใครเหมือนใคร"], why: "เรื่องครอบครัวอบอุ่น คนไทยและลาวอินได้ทั้งคู่" },
       { t: "ของที่บ้านแม่ต้องมีทุกบ้าน", hook: "“บ้านไหนมีครบ 5 อย่าง คือบ้านคนไทย/ลาวแท้”", plan: ["ชูของ 5 อย่าง", "เล่าที่มาสั้นๆ ขำๆ", "ถามคนดูว่าบ้านไหนมีครบ"], why: "คนดูเช็คตามบ้านตัวเอง แล้วคอมเมนต์" },
-      { t: "วันที่เราดูแลหลานแทน", hook: "“เลี้ยงเด็ก 1 วัน ง่ายแค่ไหน?”", plan: ["ถ่ายเฉพาะมือและของเล่น ไม่ถ่ายหน้าเด็ก", "เล่าความวุ่นวายผ่านเสียงพูด", "จบด้วยสองคนหลับคาโซฟา"], why: "เรื่องครอบครัวเป็นหมวดที่โตเร็วในไทย (ข้อมูล iCreator 2025) แต่ต้องปกป้องเด็ก" },
+      { t: "โทรหาพ่อแม่พร้อมกัน แข่งกันว่าใครได้คำชมก่อน", hook: "มือถือ 2 เครื่อง “เริ่ม!”", plan: ["ขออนุญาตพ่อแม่ก่อนถ่าย ถ่ายเฉพาะเราสองคน", "เล่าเรื่องดีๆ ของสัปดาห์", "ขึ้นคะแนนคำชมบนจอ"], why: "เรื่องครอบครัวเป็นหมวดที่โตเร็วในไทย (ข้อมูล iCreator 2025) ทำได้โดยไม่ต้องมีเด็กในเฟรม" },
     ],
     ai: [
       { t: "ยายเล่านิทานก่อนนอน", hook: "ตะเกียงสว่าง เสียงยาย “กาลครั้งหนึ่ง...”", plan: ["ตัวละครยายประจำเพจ", "นิทานพื้นบ้านที่ Win เล่าเอง 40 วิ", "ภาพนิ่งแบบหนังสือนิทาน 5 ภาพ"], why: "นิทานพื้นบ้านไทย-ลาวคือของที่ AI ทำแทนไม่ได้ ต้องมาจาก Win" },
@@ -153,4 +154,7 @@ export const IDEAS = {
 };
 
 // two rising themes combined into one idea, e.g. couple x food
+// + the ideas in ideabank-more.js: at least 7 per theme and page, so the daily rotation does not repeat in a week
+for (const [theme, more] of Object.entries(MORE)) for (const side of ["couple", "ai"]) IDEAS[theme][side].push(...(more[side] || []));
+
 export const MIX = (a, b) => `ลองผสม “${a}” กับ “${b}” ในคลิปเดียว เช่น ใช้รูปแบบของหมวดแรก แต่เล่าเรื่องของหมวดที่สอง`;
