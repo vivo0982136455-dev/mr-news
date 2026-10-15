@@ -1,7 +1,21 @@
 // Renders one chapter of the book (handbook / human / ai) from js/content/<id>.js.
 // A lesson is a list of blocks: { p } { h } { list } { steps } { table } { tip } { bad } { ai } { figure } { prompt }
 // { learn } (real YouTube lessons, chosen weekly by the robot) { widget } { check } { src }.
-import { h, md, mdEl, promptBox, embed, store } from "../ui.js";
+// Every lesson ends with "ทำเลย" (one action) and 2-3 questions that come back after 1, 3 and 7 days (#/review),
+// and every chapter says when its facts were last checked.
+import { h, md, mdEl, promptBox, embed, store, thDay } from "../ui.js";
+import { QUIZ } from "../content/quiz.js";
+import { questionCard } from "../quiz-ui.js";
+import { thaiDay } from "../shared/patterns.js";
+
+const STALE_DAYS = 180; // a [ยืนยันแล้ว] label older than this needs checking again
+const ageDays = (day) => Math.floor((Date.parse(thaiDay() + "T00:00:00Z") - Date.parse(day + "T00:00:00Z")) / 864e5);
+function checkedNote(day) {
+  if (!day) return null;
+  const old = ageDays(day) > STALE_DAYS;
+  return h("div", { class: old ? "warn" : "note checked" }, `ตรวจข้อมูลล่าสุด ${thDay(day)}`,
+    old ? ` — ผ่านมา ${ageDays(day)} วันแล้ว ตัวเลขและกฎของแพลตฟอร์มอาจเปลี่ยน ให้เช็กลิงก์ที่มาก่อนเชื่อ` : " · ป้าย [ยืนยันแล้ว] หมายถึงตรวจกับแหล่งทางการ ณ วันนั้น");
+}
 import { CHAPTERS, LESSON_IDS, readSet, setRead, chapterProgress } from "../book.js";
 import { tryJSON } from "../data.js";
 import { FIGURES } from "../content/figures.js";
@@ -20,6 +34,7 @@ export async function render(main, chapterId) {
     h("div", { class: "kicker" }, "บทเรียน"),
     h("h1", {}, ch.icon + " " + ch.title),
     mdEl("p", mod.INTRO),
+    checkedNote(mod.CHECKED),
     h("div", { class: "bar", style: { maxWidth: "420px" } }, bar), h("div", { class: "note" }, progText)));
 
   const toc = h("nav", { class: "toc", "aria-label": "บทในหมวดนี้" }, lessons.map((l, i) => h("a", { href: `#/${chapterId}/${l.id}`, class: read.has(l.id) ? "done" : "", "data-l": l.id, onclick: (e) => { e.preventDefault(); document.getElementById(l.id)?.scrollIntoView({ behavior: "smooth" }); } }, `${i + 1}. ${l.short || l.title}`)));
@@ -46,7 +61,9 @@ export async function render(main, chapterId) {
     const next = lessons[i + 1];
     main.append(h("article", { class: "lesson" + (chapterId === "ai" ? " ai" : ""), id: l.id },
       h("header", {}, h("div", { class: "n" }, i + 1), h("div", {}, h("h2", {}, l.title), l.goal ? h("div", { class: "goal" }, "เป้าหมาย: ", l.goal) : null)),
+      l.checked && l.checked !== mod.CHECKED ? checkedNote(l.checked) : null,
       ...l.blocks.map((b) => block(b, learn, l.id)),
+      lessonEnd(l.id),
       h("div", { class: "row", style: { justifyContent: "space-between", marginTop: "10px" } }, btn,
         next ? h("a", { class: "btn small", href: `#/${chapterId}/${next.id}`, onclick: (e) => { e.preventDefault(); document.getElementById(next.id)?.scrollIntoView({ behavior: "smooth" }); } }, "บทถัดไป ↓") : null)));
   });
@@ -57,6 +74,16 @@ export async function render(main, chapterId) {
     h("p", {}, "จบหมวดนี้แล้ว 🎉"),
     nextCh ? h("a", { class: "btn primary", href: "#/" + nextCh.id }, `ไปต่อ: ${nextCh.icon} ${nextCh.title}`) : h("a", { class: "btn primary", href: "#/idea" }, "ไปเลือกไอเดียแรกใน Mr Idea 💡")));
   if (LESSON_IDS[chapterId].join() !== lessons.map((l) => l.id).join()) console.warn("lesson ids differ from book.js");
+}
+
+// "ทำเลย" + the questions of a lesson
+function lessonEnd(id) {
+  const qz = QUIZ[id];
+  if (!qz) return null;
+  return h("div", { class: "lesson-end" },
+    h("div", { class: "do-now" }, h("b", {}, "⚡ ทำเลย: "), qz.now),
+    h("div", { class: "quiz" }, h("h3", {}, "🧠 ลองตอบ ", h("small", { class: "note" }, `${qz.q.length} ข้อ · จะถามอีกครั้งหลัง 1, 3 และ 7 วัน ให้จำได้จริง`)),
+      qz.q.map((item, i) => questionCard(`${id}#${i}`, item))));
 }
 
 function block(b, learn, lessonId) {

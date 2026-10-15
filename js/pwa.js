@@ -35,6 +35,7 @@ export async function askInstall() {
 // lesson chapters are loaded only when opened: list them too, so the whole book can be read offline
 const BOOK_FILES = ["js/pages/chapter.js", "js/pages/learn.js", "js/pages/notes.js", "js/pages/idea.js", "js/pages/news.js", "js/pages/home.js",
   "js/pages/start.js", "js/pages/plan.js", "js/pages/results.js", "js/my-store.js", "js/shared/patterns.js",
+  "js/pages/ladder.js", "js/pages/review.js", "js/quiz-ui.js", "js/content/quiz.js", "js/content/ladder.js",
   "js/content/handbook.js", "js/content/human.js", "js/content/ai.js", "js/content/figures.js", "js/content/widgets.js",
   "data/latest.json", "data/ideas.json", "data/index.json", "data/famous.json", "data/learn.json", "manifest.webmanifest", "icons/icon-192.png"];
 function loadedFiles() {

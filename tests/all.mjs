@@ -79,6 +79,33 @@ for (const [t, cn, want] of [["เมื่อเด็กหญิงกลา�
 ok(SENSITIVE.test("สภาลาวเดือดเมื่อส.ส. เสนอ") && SENSITIVE.test("นายกฯ สั่งย้าย") && !SENSITIVE.test("แฟนแกล้งกินส้มตำ"), "news / politics words are caught, daily titles are not");
 ok(MEDIA.test("3Plus") && MEDIA.test("Sanook.com") && MEDIA.test("LungNoteTV") && MEDIA.test("Thai PBS") && !MEDIA.test("Bie The Ska") && !MEDIA.test("Milin family"), "media channels the audit found are filtered, creators are not");
 
+// the book as a ladder: every lesson has "ทำเลย" + 2-3 questions, every lesson sits on a step, steps join up
+const { QUIZ } = await import(pathToFileURL(path.join(ROOT, "js/content/quiz.js")).href);
+const { STAGES, stageOf, BADGES } = await import(pathToFileURL(path.join(ROOT, "js/content/ladder.js")).href);
+const allLessons = Object.values(ids).flat();
+for (const id of allLessons) {
+  const z = QUIZ[id];
+  ok(z && z.now && z.q.length >= 2 && z.q.every((x) => x.q && x.a.length === 3 && new Set(x.a).size === 3 && x.why), `lesson ${id}: "ทำเลย" + 2-3 questions with 3 different answers and a reason`);
+}
+ok(Object.keys(QUIZ).every((id) => allLessons.includes(id)), "no questions for a lesson that does not exist", Object.keys(QUIZ).filter((id) => !allLessons.includes(id)).join(","));
+const onLadder = new Set(STAGES.flatMap((s) => s.lessons));
+ok([...onLadder].every((id) => allLessons.includes(id)), "every lesson the ladder links to exists", [...onLadder].filter((id) => !allLessons.includes(id)).join(","));
+ok(allLessons.every((id) => onLadder.has(id)), "every lesson of the book sits on a step of the ladder", allLessons.filter((id) => !onLadder.has(id)).join(","));
+ok(STAGES.every((s, i) => !i || STAGES[i - 1].to === s.from) && STAGES[0].from === 0, "the 5 steps join up (clips)");
+ok(stageOf(0).n === 0 && stageOf(2).n === 0 && stageOf(3).n === 1 && stageOf(29).n === 1 && stageOf(30).n === 2 && stageOf(100).n === 3 && stageOf(250).n === 4, "finished clips -> the right step");
+ok(new Set(BADGES.map((b) => b.id)).size === BADGES.length && BADGES.length >= 8, "badges have unique ids");
+for (const ch of ["handbook", "human", "ai"]) ok(/export const CHECKED = "\d{4}-\d{2}-\d{2}"/.test(read(`js/content/${ch}.js`)), `${ch}: says when its facts were last checked`);
+ok(read("js/content/handbook.js").includes("ยังเคลื่อนไหว") && read("js/content/handbook.js").includes("2 คลิป / Shorts 5 คลิป ทุก 90 วัน"), "YouTube 2027 'active channel' rule is in the book");
+ok(!/~189 ฿/.test(read("js/content/ai.js") + read("js/content/widgets.js")), "no unconfirmed fixed price for Google AI Plus");
+ok(read("js/content/handbook.js").includes('id: "hb-money"') && read("js/content/handbook.js").includes("ภ.ง.ด.94"), "the Thai-Lao money lesson exists (affiliate, tax, work permit)");
+// the review schedule: 1, 3, 7 days, then remembered; a wrong answer starts again from 1 day
+globalThis.localStorage = { d: {}, getItem(k) { return this.d[k] ?? null; }, setItem(k, v) { this.d[k] = String(v); }, removeItem(k) { delete this.d[k]; } };
+const { answerQuiz, dueQuestions, remembered } = await import(pathToFileURL(path.join(ROOT, "js/my-store.js")).href);
+const s1 = answerQuiz("t#0", true, "2026-10-15"), s2 = answerQuiz("t#0", true, "2026-10-16"), s3 = answerQuiz("t#0", true, "2026-10-19"), s4 = answerQuiz("t#0", true, "2026-10-26");
+ok(s1.due === "2026-10-16" && s2.due === "2026-10-19" && s3.due === "2026-10-26" && s4.due === null && remembered() === 1, "review: asked again after 1, 3 and 7 days, then remembered", JSON.stringify([s1.due, s2.due, s3.due, s4.due]));
+ok(answerQuiz("w#0", false, "2026-10-15").due === "2026-10-16" && dueQuestions("2026-10-16").includes("w#0"), "review: a wrong answer comes back tomorrow");
+delete globalThis.localStorage;
+
 // the key must never be inside the project
 ok(!fs.readdirSync(ROOT).some((f) => /key/i.test(f) && f.endsWith(".txt")), "no key file inside the project folder");
 ok(read(".gitignore").includes("youtube_key.txt"), ".gitignore guards the key file");
@@ -144,7 +171,7 @@ const PORT = 8790;
 const server = await serve(PORT);
 const browser = await launch({ port: 9447 });
 const BASE = `http://127.0.0.1:${PORT}/`;
-const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results"];
+const ROUTES = ["", "news", "idea", "handbook", "human", "ai", "learn", "notes", "start", "plan", "results", "ladder", "review"];
 const SIZES = quick ? [[380, 820]] : [[380, 820], [768, 1024], [1440, 900]];
 const THEMES_ = quick ? [false] : [false, true];
 let slowest = 0;
@@ -296,6 +323,42 @@ try {
   await c.eval(`localStorage.clear(); return true;`);
   await c.close();
 
+  // ---- the book as a ladder: questions at the end of a lesson, review, steps counted in finished clips, badges ----
+  const d = await browser.newPage({ width: 380, height: 820 });
+  await d.goto(BASE + "#/notes", 300);
+  await d.eval(`localStorage.clear(); return true;`);
+  await d.eval(`location.hash = "#/handbook"; return true;`);
+  ok(await d.until(`document.querySelector(".lesson-end .quiz-q")`, 15000), "every lesson ends with ทำเลย + questions");
+  ok(await d.eval(`return document.querySelector("main").innerText.includes("ตรวจข้อมูลล่าสุด");`), "the chapter says when its facts were last checked");
+  ok(await d.eval(`return document.querySelectorAll("#hb-money .quiz-q").length === 3;`), "the money lesson has its 3 questions");
+  await d.eval(`const q = document.querySelector("#hb-start .quiz-q"); const right = ${JSON.stringify("คลิปที่คนดูอยู่นานและพอใจ")};
+    [...q.querySelectorAll(".opt")].find((b) => b.textContent === right).click(); return true;`);
+  ok(await d.eval(`const q = document.querySelector("#hb-start .quiz-q"); return q.querySelector(".opt.right") && q.querySelector(".why.ok") && q.innerText.includes("จะถามอีกครั้งใน 1 วัน");`), "a right answer is confirmed and comes back in 1 day");
+  await d.eval(`const q = document.querySelectorAll("#hb-start .quiz-q")[1]; const wrong = ${JSON.stringify("เอาคลิปคนอื่นมาใส่กรอบ")};
+    [...q.querySelectorAll(".opt")].find((b) => b.textContent === wrong).click(); return true;`);
+  ok(await d.eval(`const q = document.querySelectorAll("#hb-start .quiz-q")[1]; return q.querySelector(".opt.wrong") && q.querySelector(".opt.right") && q.querySelector(".why.no");`), "a wrong answer shows the right one and why");
+  ok(await d.eval(`const z = JSON.parse(localStorage.getItem("mn_quiz")); return Object.keys(z).length === 2 && z["hb-start#0"].step === 1;`), "answers are kept for the review");
+  // pretend both are due today
+  await d.eval(`const z = JSON.parse(localStorage.getItem("mn_quiz")); for (const k in z) z[k].due = "2000-01-01"; localStorage.setItem("mn_quiz", JSON.stringify(z)); location.hash = "#/review"; return true;`);
+  ok(await d.until(`document.querySelectorAll(".quiz-q").length === 2`, 8000), "the review page asks the 2 due questions");
+  await d.eval(`const q = document.querySelector(".quiz-q"); const right = ${JSON.stringify("คลิปที่คนดูอยู่นานและพอใจ")};
+    const b = [...q.querySelectorAll(".opt")].find((x) => x.textContent === right); (b || q.querySelector(".opt")).click(); return true;`);
+  ok(await d.eval(`return Object.values(JSON.parse(localStorage.getItem("mn_quiz"))).some((o) => o.step === 2);`), "a right review answer moves the question to the 3-day review");
+  const layoutRev = await d.eval(LAYOUT_CHECK);
+  ok(!layoutRev.length, "380px: the review page fits the screen", layoutRev.join(" | "));
+  // finished clips decide the step; 3 clips = step 1 + a badge
+  await d.eval(`localStorage.setItem("mn_results", JSON.stringify([1, 2, 3].map((i) => ({ id: "r" + i, date: "2026-10-1" + i, where: "yt-short", t: "คลิป " + i, views: 100 * i })))); location.hash = "#/ladder"; return true;`);
+  ok(await d.until(`document.querySelector(".stage-now") && document.querySelector(".stage-now").innerText.includes("ขั้น 1 · ฝึกมือ")`, 8000), "3 finished clips -> step 1 ฝึกมือ");
+  ok(await d.eval(`return document.querySelectorAll(".badge.got").length === 2 && JSON.parse(localStorage.getItem("mn_badges_seen")).includes("clip3");`), "the 'first clip' and '3 clips' badges are earned and celebrated once");
+  ok(await d.eval(`return document.querySelectorAll(".stage").length === 5 && document.querySelector(".stage.now") && document.querySelectorAll(".stage .chip-link").length > 30;`), "the ladder lists 5 steps with their lessons");
+  const layoutLad = await d.eval(LAYOUT_CHECK);
+  ok(!layoutLad.length, "380px: the ladder fits the screen", layoutLad.join(" | "));
+  await d.shot("ladder-380.png");
+  await d.eval(`location.hash = "#/learn"; return true;`);
+  ok(await d.until(`document.querySelector("main").innerText.includes("ตอนนี้ขั้น 1 ฝึกมือ")`, 8000), "the เรียน page starts with the ladder");
+  await d.eval(`localStorage.clear(); return true;`);
+  await d.close();
+
   // ---- honest time labels ----
   const t = await browser.newPage({ width: 380, height: 820 });
   await t.goto(BASE + "#/news", 2000);
@@ -334,7 +397,7 @@ try {
   await p.eval(`document.querySelector("#hb-start .done-btn").click(); return true;`);
   ok(await p.eval(`return document.querySelectorAll(".toc a.done").length === 1;`), "reading tick marks the lesson in the table of contents");
   await p.goto(BASE + "#/", 1500);
-  ok(await p.eval(`return document.querySelector("main").innerText.includes("อ่านแล้ว 1/9");`), "cover shows chapter progress");
+  ok(await p.eval(`return document.querySelector("main").innerText.includes("อ่านแล้ว 1/10");`), "cover shows chapter progress");
 
   await p.goto(BASE + "#/idea", 1800);
   const firstName = await p.eval(`return document.querySelector(".idea h3").textContent;`);

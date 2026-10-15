@@ -6,7 +6,9 @@ import { CHAPTERS, chapterProgress } from "../book.js";
 import { THEME_BY_ID, isShort } from "../shared/themes.js";
 import { allNotes, noteFromVideo } from "../notes-store.js";
 import { installState, askInstall, onInstallChange, isIOS } from "../pwa.js";
-import { getSetup, weekItems, myStreak, addToPlan, todayDone, setTodayDone, STEPS, PLAN_MAX } from "../my-store.js";
+import { getSetup, weekItems, myStreak, addToPlan, todayDone, setTodayDone, STEPS, PLAN_MAX, clipsDone, dueQuestions } from "../my-store.js";
+import { stageOf } from "../content/ladder.js";
+import { newBadges } from "./ladder.js";
 import { setupForm } from "./start.js";
 
 const redraw = () => window.dispatchEvent(new HashChangeEvent("hashchange"));
@@ -22,6 +24,7 @@ export async function render(main) {
     h("p", { style: { maxWidth: "62ch", color: "var(--ink-2)" } }, "หนังสือที่อัปเดตตัวเองทุกวัน: ดูว่าคลิปไทย-ลาวแบบไหนกำลังได้วิว (Mr News) → คิดไอเดียของเราเอง (Mr Idea) → เรียนทำคลิปทั้งแบบคนจริงและ AI → จดทุกอย่างในสมุด"),
     h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/news" }, "📰 เปิด Mr News วันนี้"), h("a", { class: "btn", href: "#/idea" }, "💡 ไอเดียวันนี้"))));
 
+  newBadges(); // a badge earned elsewhere (plan, results, review) is celebrated here once
   const setup = getSetup();
   if (!setup) main.append(h("div", { class: "section" }, h("h2", {}, "👋 เริ่มที่นี่ ", h("small", {}, "ครั้งแรกเท่านั้น · ข้ามได้ทุกข้อ")), setupForm(redraw)));
   else main.append(todayCard(setup, latest, ideas));
@@ -125,6 +128,8 @@ function todayCard(setup, latest, ideas) {
     h("h2", {}, "วันนี้ของ Win ", h("small", {}, h("a", { href: "#/start" }, "ตั้งค่าหน้าแรก"))),
     setup.when || setup.what ? h("p", { class: "plan-line" }, `📌 หลังจาก${setup.when || "…"} ฉันจะ${setup.what || "…"}`) : null,
     h("label", { class: "card task" }, done, h("span", {}, h("b", {}, "งานเล็ก 1 อย่าง: "), smallTask(setup, items))),
+    (() => { const clips = clipsDone(), s = stageOf(clips), due = dueQuestions().length;
+      return h("a", { class: "card plan-mini", href: "#/ladder" }, h("b", {}, `🪜 บันได: ขั้น ${s.n} ${s.name}`), ` · ทำเสร็จ ${clips} คลิป`, due ? ` · 🧠 ทวน ${due} ข้อ` : "", " →"); })(),
     h("a", { class: "card plan-mini", href: "#/plan" },
       h("b", {}, "🗓️ แผนสัปดาห์นี้: "),
       items.length ? `${items.filter((x) => x.posted).length}/${items.length} โพสต์แล้ว` : `ยังว่าง — เลือก ${PLAN_MAX} ไอเดียจาก Mr Idea`,

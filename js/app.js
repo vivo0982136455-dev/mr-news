@@ -18,6 +18,8 @@ const PAGES = {
   start: () => import("./pages/start.js"),
   plan: () => import("./pages/plan.js"),
   results: () => import("./pages/results.js"),
+  ladder: () => import("./pages/ladder.js"),
+  review: () => import("./pages/review.js"),
 };
 const BOTTOM = [
   ["", "🏠", "หน้าแรก"],
@@ -56,6 +58,7 @@ function shell() {
       h("div", { class: "ch" }, "งานของ Win"),
       link("plan", "🗓️", "แผนสัปดาห์นี้"), link("results", "📈", "ผลคลิปของเรา"),
       h("div", { class: "ch" }, "บทเรียน"),
+      link("ladder", "🪜", "บันได 5 ขั้น"), link("review", "🧠", "ทวนความจำ"),
       CHAPTERS.map((c) => link(c.id, c.icon, c.title, true)),
       h("div", { class: "ch" }, "อื่นๆ"), link("", "🏠", "หน้าแรก / ปก")),
     h("div", { class: "foot" }, themeButton(), h("p", { style: { marginTop: "10px" } }, "ข้อมูลอัปเดตเองทุก 6 ชั่วโมง โน้ตของ Win เก็บในเครื่องนี้เท่านั้น")));
@@ -70,7 +73,7 @@ function link(id, ico, name, prog) {
 }
 
 function markCurrent(id) {
-  const learnIds = new Set(["learn", ...CHAPTERS.map((c) => c.id)]);
+  const learnIds = new Set(["learn", "ladder", "review", ...CHAPTERS.map((c) => c.id)]);
   for (const a of document.querySelectorAll(".side nav a, .bottom a")) {
     const aid = a.getAttribute("data-id");
     const on = aid === id || (a.closest(".bottom") && ((aid === "learn" && learnIds.has(id)) || (aid === "notes" && (id === "plan" || id === "results")) || (aid === "" && id === "start")));

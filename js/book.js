@@ -9,7 +9,7 @@ export const CHAPTERS = [
 ];
 
 export const LESSON_IDS = {
-  handbook: ["hb-start", "hb-youtube", "hb-facebook", "hb-other", "hb-calc", "hb-top", "hb-truth", "hb-rules", "hb-90"],
+  handbook: ["hb-start", "hb-youtube", "hb-facebook", "hb-other", "hb-money", "hb-calc", "hb-top", "hb-truth", "hb-rules", "hb-90"],
   human: ["hu-map", "hu-gear", "hu-plan", "hu-shoot", "hu-light", "hu-sound", "hu-edit", "hu-text", "hu-music", "hu-check", "hu-cover", "hu-youtube", "hu-facebook", "hu-measure", "hu-project"],
   ai: ["ai-map", "ai-tools", "ai-bible", "ai-script", "ai-prompt", "ai-image", "ai-video", "ai-voice", "ai-edit", "ai-label", "ai-project", "ai-best"],
 };

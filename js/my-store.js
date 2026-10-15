@@ -3,7 +3,7 @@
 import { store, toast } from "./ui.js";
 import { thaiDay, weekOf, addDays } from "./shared/patterns.js";
 
-export const KEYS = ["mn_setup", "mn_plan", "mn_results", "mn_reviews", "mn_today"];
+export const KEYS = ["mn_setup", "mn_plan", "mn_results", "mn_reviews", "mn_today", "mn_quiz", "mn_badges_seen"];
 
 // ---------------------------------------------------------------- setup (3 questions + one plan sentence)
 // { themes: ["couple", "food"], format: "short" | "long" | "both", minutes: 3 | 10 | 30, when: "เลิกกะ", what: "...",
@@ -97,3 +97,33 @@ export const saveReviews = (list) => store.set("mn_reviews", list);
 // ---------------------------------------------------------------- today's small task
 export const todayDone = () => store.get("mn_today", {}).day === thaiDay();
 export const setTodayDone = (on) => store.set("mn_today", on ? { day: thaiDay() } : {});
+
+// ---------------------------------------------------------------- what Win has DONE (the ladder counts this)
+// finished clips = the larger of: planned ideas ticked "posted" (all weeks) and clips typed on the results page
+// (one clip is often in both, so they are not added together)
+export function clipsDone() {
+  const posted = Object.values(getPlan().weeks).reduce((a, w) => a + (w.items || []).filter((x) => x.posted).length, 0);
+  return Math.max(posted, getResults().length);
+}
+export const weeksDone = () => Object.values(getPlan().weeks).filter((w) => weekDone(w.items || [])).length;
+
+// ---------------------------------------------------------------- end-of-lesson questions, asked again after 1, 3, 7 days
+// mn_quiz = { "hb-start#0": { step, due, right, wrong } }: answered in the lesson -> asked again after 1 day,
+// then 3 days, then 7 days; right after the 7-day review = remembered (step 4, no more due date).
+// A wrong answer starts again from 1 day.
+export const REVIEW_DAYS = [1, 3, 7];
+export const getQuiz = () => store.get("mn_quiz", {});
+export function answerQuiz(qid, correct, day = thaiDay()) {
+  const all = getQuiz();
+  const o = all[qid] || { step: 0, right: 0, wrong: 0 };
+  o.step = correct ? o.step + 1 : 1;
+  o.right += correct ? 1 : 0;
+  o.wrong += correct ? 0 : 1;
+  o.due = o.step <= REVIEW_DAYS.length ? addDays(day, REVIEW_DAYS[o.step - 1]) : null;
+  all[qid] = o;
+  store.set("mn_quiz", all);
+  return o;
+}
+export const dueQuestions = (day = thaiDay()) => Object.entries(getQuiz()).filter(([, o]) => o.due && o.due <= day).map(([id]) => id);
+export const remembered = () => Object.values(getQuiz()).filter((o) => o.step > REVIEW_DAYS.length).length;
+

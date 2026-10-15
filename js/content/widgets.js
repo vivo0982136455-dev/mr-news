@@ -149,7 +149,7 @@ export const WIDGETS = {
   credits() {
     return h("div", { class: "card", style: { marginTop: "10px" } }, h("h3", {}, "💳 เงินหลักร้อยซื้อวิดีโอ AI ได้กี่วินาทีต่อเดือน"), h("p", { class: "sub" }, "[ประมาณการ] วินาทีของวิดีโอที่สร้างเสร็จ ก่อนหักรอบที่ต้องสร้างใหม่"),
       hbars([
-        { label: "Google AI Plus ~189 ฿ · Veo แบบเร็ว", value: 80, display: "~80 วิ", tip: "200 เครดิต ≈ วิดีโอแบบเร็ว ~10 คลิป × 8 วิ (reelticker)" },
+        { label: "Google AI Plus · Veo แบบเร็ว", value: 80, display: "~80 วิ", tip: "200 เครดิต ≈ วิดีโอแบบเร็ว ~10 คลิป × 8 วิ (reelticker)" },
         { label: "Google AI Plus · Veo คุณภาพสูง", value: 16, display: "~16 วิ", tip: "200 เครดิต ≈ คุณภาพสูง ~2 คลิป × 8 วิ (reelticker)" },
         { label: "Kling Standard ~290-330 ฿", value: 95, display: "80-110 วิ", tip: "660 เครดิต ÷ 6-8 เครดิต/วินาที (Kling)" },
         { label: "Runway Standard ~500 ฿", value: 52, display: "~52 วิ", tip: "625 เครดิต ≈ 52 วินาที (Creatify)" },

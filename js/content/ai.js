@@ -1,4 +1,5 @@
 // Chapter "ทำคลิป AI". Tools, prices and rules as researched in Oct 2026 (sources linked per lesson).
+export const CHECKED = "2026-10-14"; // the day tools, prices and rules were last checked
 export const INTRO = "เส้นทางคลิป AI ตั้งแต่ไอเดียถึงโพสต์ แบบจับมือทำทีละขั้น: ใช้ AI ตัวไหนทำอะไร, เขียน prompt ยังไง, ทำตัวละครให้หน้าเหมือนเดิมทุกตอน, เครดิตพอแค่ไหน และกฎที่ทำให้ **ช่อง AI ยังหาเงินได้** — กุญแจคือ \"มีคนอยู่ในงาน\": บท เสียง และตัวละครที่ Win คิดเอง";
 
 export const LESSONS = [
@@ -12,7 +13,7 @@ export const LESSONS = [
     ],
   },
   {
-    id: "ai-tools", short: "เลือกเครื่องมือ", title: "AI ตัวไหนทำอะไร (ราคา ต.ค. 2026)", goal: "เลือกเครื่องมือให้ถูกงานและงบ",
+    id: "ai-tools", short: "เลือกเครื่องมือ", title: "AI ตัวไหนทำอะไร (ต.ค. 2026)", goal: "เลือกเครื่องมือให้ถูกงานและงบ", checked: "2026-10-15",
     blocks: [
       { table: { head: ["ขั้น", "เครื่องมือหลัก", "จุดเด่น", "ข้อควรรู้"], rows: [
         ["ไอเดียและบท", "**Gemini** / Steep", "เขียนไทยได้ อ่านลิงก์ YouTube ได้", "ฟรี"],
@@ -27,13 +28,13 @@ export const LESSONS = [
       { h: "ราคาในไทย" },
       { table: { head: ["แผน", "ต่อเดือน", "ได้อะไร"], rows: [
         ["Gemini / Flow แผนฟรี", "ฟรี", "ลองได้ จำนวนจำกัด"],
-        ["**Google AI Plus**", "**~189 ฿**", "200 Flow credits, Nano Banana, Veo 3.1, Omni"],
-        ["Google AI Pro", "~750 ฿", "1,000 Flow credits, Nano Banana Pro"],
+        ["**Google AI Plus**", "เช็กราคาจริงที่ one.google.com **[ยังไม่ยืนยัน]**", "200 Flow credits, Nano Banana, Veo 3.1, Omni"],
+        ["Google AI Pro", "เช็กราคาจริงที่ one.google.com **[ยังไม่ยืนยัน]**", "1,000 Flow credits, Nano Banana Pro"],
         ["Kling Standard", "~230 ฿ เดือนแรก แล้ว ~290-330 ฿ **[ประมาณการ]**", "~660 เครดิต"],
         ["ElevenLabs Starter", "~170-200 ฿ **[ประมาณการ]**", "เสียงไทย v3 ใช้เชิงพาณิชย์ได้"],
       ] } },
       { widget: "credits" },
-      { p: "ราคาต้องดูจริงตอนสมัครทุกครั้ง (ราคา Google ในไทยมาจากข่าวเม.ย. 2026) — การสมัครและจ่ายเงิน Win ทำเองเท่านั้น" },
+      { p: "หน้า Google One ของไทยไม่แสดงราคาเป็นบาทตอนที่ตรวจ (15 ต.ค. 2026) ข่าวเดือน เม.ย. 2026 เคยบอกราว 189 บาท/เดือน สำหรับ AI Plus — **ดูราคาจริงตอนสมัครทุกครั้ง** การสมัครและจ่ายเงิน Win ทำเองเท่านั้น" },
       { src: [["Google One TH", "https://one.google.com/about/google-ai-plans/?hl=th&gl=TH"], ["ฐานเศรษฐกิจ (ราคา AI Plus)", "https://www.thansettakij.com/technology/ai/655617"], ["Kling credit guide", "https://kling.ai/blog/kling-video-3-0-credit-cost-guide"], ["Azure Speech languages", "https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=tts"], ["reelticker (Flow credits)", "https://reelticker.com/tools/google-flow"]] },
     ],
   },

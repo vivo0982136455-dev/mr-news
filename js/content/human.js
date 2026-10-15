@@ -1,5 +1,6 @@
 // Chapter "ทำคลิปคนจริง (วันๆ One One)" - a beginner project from idea to upload.
 // App menu names are given in Thai with the English name in brackets: Thai menus can differ by app version.
+export const CHECKED = "2026-10-14"; // the day the facts and app menus were last checked
 export const INTRO = "โปรเจกต์มือใหม่: ทำคลิปชีวิตจริงของ Win กับแฟนด้วย **มือถือที่มีอยู่ + CapCut (ฟรี)** ตั้งแต่ไอเดียจนโพสต์ Facebook และ YouTube ทุกบทมีภาพประกอบ ขั้นตอนทีละข้อ และ **คลิปสอนจริงจาก YouTube** ให้ดูตาม — ชื่อเมนูในแอปอาจต่างเล็กน้อยตามเวอร์ชัน ถ้าไม่ตรงให้ดูไอคอนแทน";
 
 export const LESSONS = [
