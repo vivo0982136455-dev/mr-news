@@ -190,6 +190,8 @@ main { padding: 16px 16px 96px; max-width: 1120px; width: 100%; margin: 0 auto; 
 .info { font: inherit; font-size: var(--fs-xs); color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 4px 10px; margin: 2px 0; min-height: 28px; cursor: pointer; white-space: nowrap; }
 .info.est { border-style: dashed; }
 .info.up { color: var(--up); border-color: currentColor; }
+.info.x { color: var(--brand); border-color: currentColor; font-weight: 600; }
+.vcard .looks { font-size: var(--fs-xs); }
 .info[aria-expanded="true"] { background: var(--surface-2); }
 .info-pop { display: block; margin: 4px 0; padding: 6px 10px; border-radius: 10px; background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-sm); font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; white-space: normal; }
 .info-pop[hidden] { display: none; }

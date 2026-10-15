@@ -1,10 +1,10 @@
 // Interactive pieces inside lessons: money calculator, YouTube Partner Program progress, Top 100 most followed,
 // Thai channels, AI-credit reality, best AI videos. Numbers marked "ประมาณการ" come from the research report
 // (Oct 2026) and are labelled on the page.
-import { h, num, pct, store, embed, seg } from "../ui.js";
+import { h, num, pct, dur, thDay, store, embed, seg } from "../ui.js";
 import { hbars } from "../charts.js";
 import { tryJSON } from "../data.js";
-import { MEDIA_CHANNEL } from "../shared/themes.js";
+import { MEDIA_CHANNEL, THEME_BY_ID } from "../shared/themes.js";
 
 const field = (label, input, hint) => h("label", {}, label, input, hint ? h("span", { class: "note" }, hint) : null);
 const numberInput = (key, def) => {
@@ -20,6 +20,23 @@ const progress = (label, value, goal, unit) => {
 };
 
 export const WIDGETS = {
+  // ---------------- today's numbers inside a lesson (read live, never written into the text) ----------------
+  "live-facts"(b) {
+    const box = h("div", { class: "tip-box" }, "กำลังอ่านตัวเลขของวันนี้…");
+    tryJSON("data/latest.json").then((l) => {
+      const c = l?.creator;
+      if (!c) return box.replaceChildren("ยังอ่านข้อมูล Mr News ไม่ได้ — เปิดหน้า Mr News ดูตัวเลขล่าสุด");
+      const shortShare = c.formats.short.v / (c.formats.short.v + c.formats.long.v || 1);
+      const rank = b.theme ? c.themes.findIndex((t) => t.id === b.theme) : -1;
+      const th = b.theme && THEME_BY_ID[b.theme];
+      box.replaceChildren(h("b", {}, `Mr News วันที่ ${thDay(l.day)}: `),
+        `ในคลิปครีเอเตอร์ต้นฉบับที่ระบบเจอ Shorts ได้วิว ${pct(shortShare)} และคลิปที่ติด Top 50 ยาวกลางๆ ${dur(c.formats.medianTop50)} นาที`,
+        th ? (rank >= 0 ? ` · หมวด ${th.icon} ${th.name} อยู่อันดับ ${rank + 1} (${pct(c.themes[rank].share)} ของวิว)` : ` · วันนี้หมวด ${th.name} ไม่ติดอันดับ`) : null,
+        h("div", { class: "note" }, "ตัวเลขเปลี่ยนทุกวัน และมาจากคลิปที่ระบบค้นเจอ ไม่ใช่ทั้งประเทศ — ใช้ดูทิศทาง ไม่ใช่กฎตายตัว"));
+    });
+    return box;
+  },
+
   // ---------------- YouTube Partner Program: how far is my channel ----------------
   ypp() {
     const subs = numberInput("mn_ypp_subs", 0), hours = numberInput("mn_ypp_hours", 0), shorts = numberInput("mn_ypp_shorts", 0), uploads = numberInput("mn_ypp_up", 0);

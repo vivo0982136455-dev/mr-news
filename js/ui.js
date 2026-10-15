@@ -98,6 +98,22 @@ export function info(label, text, cls = "") {
 }
 export const EST_TEXT = "ค่าประมาณ = ยอดวิวทั้งหมด ÷ ชั่วโมงตั้งแต่โพสต์ × 24 (คลิปที่โพสต์ไม่ถึง 24 ชม. = ยอดวิวทั้งหมด) เพราะระบบยังไม่ได้อ่านคลิปนี้ซ้ำครบ 1 วัน · ที่มา: YouTube · ไม่ได้บอกวิวจริงของวันนี้: คลิปเก่ามักได้ค่าสูงเกินจริง คลิปใหม่ได้ต่ำเกินจริง";
 export const MEASURED_TEXT = "วัดจริง = ระบบอ่านยอดวิวคลิปนี้ 2 ครั้ง ห่างกัน 18-40 ชม. แล้วปรับเป็น 24 ชม. · ที่มา: YouTube · ไม่ได้บอกว่าคนดูเป็นคนไทยหรือคนลาวกี่คน";
+export const NEW_TEXT = "คลิปใหม่ = โพสต์ไม่ถึง 24 ชม. ยอดวิวทั้งหมดจึงเป็นวิวของวันนี้ (ตัวเลขจริง ไม่ใช่ค่าประมาณ) · ที่มา: YouTube · คลิปที่เพิ่งโพสต์ไม่กี่ชั่วโมงยังโตไม่เต็มที่";
+export const X_TEXT = "×N = ยอดวิวคลิปนี้ ÷ ค่ากลางยอดวิวของคลิปแบบเดียวกัน (Shorts หรือคลิปยาว) 50 คลิปล่าสุดของช่องเดียวกัน ไม่นับคลิปที่อายุไม่ถึง 2 วัน · ที่มา: YouTube (อ่านสัปดาห์ละครั้ง) · บอกว่าคลิปนี้ \"เกินปกติ\" ของช่องตัวเองแค่ไหน — ช่องเล็กก็ได้ ×สูงได้ — ไม่ได้บอกว่าช่องใหญ่หรือเล็ก";
+
+// what a reader can SEE in a video that did well: length, how the title opens, the posting hour (Thai time).
+// Facts only - it does not claim these are the reason.
+export function looks(v) {
+  const out = [];
+  if (v.d) out.push(v.d <= 60 ? `สั้นมาก ${dur(v.d)}` : v.d <= 180 ? `Shorts ${dur(v.d)}` : `คลิปยาว ${dur(v.d)}`);
+  const t = String(v.t || "").replace(/#\S+/g, "").trim();
+  if (/\?|ไหม|มั้ย|ยังไง|อะไร|ทำไม|ใคร(?!ๆ)|เท่าไร|กี่/.test(t)) out.push("ชื่อเป็นคำถาม");
+  else if (/^เมื่อ|^ตอนที่|^วันที่|^พอ/.test(t)) out.push("ชื่อเล่าเรื่อง (เมื่อ…)");
+  if (/(^|\s)\d+\s?(อันดับ|วิธี|ข้อ|เมนู|ชั่วโมง|วัน|บาท)/.test(t)) out.push("มีตัวเลขในชื่อ");
+  if (/[“”"]/.test(t)) out.push("มีคำพูดในชื่อ");
+  if (v.p) out.push(`โพสต์ ${(new Date(v.p).getUTCHours() + 7) % 24} น.`);
+  return out;
+}
 // share of the numbers that are measured (not estimated); under half = the whole block is labelled "ประมาณ"
 export const measuredShare = (list) => (list.length ? list.filter((v) => v.m).length / list.length : 0);
 export const estBadge = (what) => info("ประมาณ", `${what}: ส่วนใหญ่รวมจากค่าประมาณ เพราะคลิปส่วนใหญ่ยังไม่ได้วัดซ้ำครบ 1 วัน · ${EST_TEXT}`, "est");
@@ -137,8 +153,10 @@ export async function copy(text) {
 export const themeChips = (ids) => (ids || []).map((id) => THEME_BY_ID[id] && h("span", { class: "tag" }, THEME_BY_ID[id].icon + " " + THEME_BY_ID[id].name));
 
 // one video row: thumbnail, title, channel, views gained, actions
-export function videoCard(v, rank, { onSave, showGain = true } = {}) {
-  const est = !v.m;
+export function videoCard(v, rank, { onSave, showGain = true, why = false, onFlag } = {}) {
+  // how sure the number is: q from the robot ("m" measured, "n" new, "e" estimate); older files only have m
+  const q = v.q || (v.m ? "m" : "e");
+  const label = q === "m" ? info("วัดจริง", MEASURED_TEXT, "up") : q === "n" ? info("คลิปใหม่", NEW_TEXT, "up") : info("ประมาณ", EST_TEXT, "est");
   return h("div", { class: "vcard" },
     h("a", { class: "thumb", href: ytUrl(v.id), target: "_blank", rel: "noopener", "aria-label": "เปิดคลิปใน YouTube" },
       h("img", { src: ytThumb(v.id), alt: "", loading: "lazy", referrerpolicy: "no-referrer" }),
@@ -149,10 +167,14 @@ export function videoCard(v, rank, { onSave, showGain = true } = {}) {
       h("div", { class: "meta" }, v.cn, " · ", v.d && v.d <= 180 ? "Shorts" : "คลิปยาว", v.ageH != null ? ` · โพสต์ ${v.ageH < 48 ? v.ageH + " ชม. ก่อน" : Math.round(v.ageH / 24) + " วันก่อน"}` : ""),
       showGain && v.g != null ? h("div", { class: "meta" },
         h("span", { class: "g" }, "+" + num(v.g)), " วิวใน 24 ชม. ",
-        est ? info("ประมาณ", EST_TEXT, "est") : info("วัดจริง", MEASURED_TEXT, "up"),
+        label,
         v.views != null ? ` · รวม ${num(v.views)}` : "") : v.v != null ? h("div", { class: "meta" }, h("span", { class: "g" }, num(v.v)), " วิว") : null,
+      v.x != null ? h("div", { class: "meta" }, info(`×${num(v.x, { compact: false })} ของปกติช่อง`, X_TEXT, "x")) : null,
+      why ? h("div", { class: "meta looks" }, "ดูอะไรจากคลิปนี้: ", looks(v).join(" · ")) : null,
       h("div", {}, themeChips(v.themes)),
-      onSave ? h("div", { class: "acts" }, h("button", { class: "btn small", onclick: () => onSave(v) }, "📌 จดลงสมุด")) : null));
+      onSave || onFlag ? h("div", { class: "acts" },
+        onSave ? h("button", { class: "btn small", onclick: () => onSave(v) }, "📌 จดลงสมุด") : null,
+        onFlag && v.ch ? h("button", { class: "btn small", title: "ช่องนี้ไม่ใช่งานต้นฉบับ (พากย์ / เอาคลิปคนอื่นมาลง) — ซ่อนจากอันดับในเครื่องนี้", onclick: () => onFlag(v) }, "🚩 ไม่ใช่ต้นฉบับ") : null) : null));
 }
 
 // a YouTube lesson video that only loads YouTube when tapped (saves data, no tracking before the tap)

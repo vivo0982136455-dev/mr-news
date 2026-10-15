@@ -30,7 +30,7 @@ for (const ch of ["handbook", "human", "ai"]) {
   ok(JSON.stringify(lessonIds) === JSON.stringify(ids[ch]), `${ch}: lesson ids match book.js`, lessonIds.join(","));
   for (const m of src.matchAll(/learn: "([\w-]+)"/g)) ok(learnCfg.lessons[m[1]], `${ch}: lesson video key ${m[1]} is in config/learn.json`);
   for (const m of src.matchAll(/figure: "([\w-]+)"/g)) ok(figures.includes(`"${m[1]}":`), `${ch}: figure ${m[1]} exists`);
-  for (const m of src.matchAll(/widget: "([\w-]+)"/g)) ok(new RegExp(`(^|\\s)"?${m[1]}"?\\(\\)`, "m").test(widgets), `${ch}: widget ${m[1]} exists`);
+  for (const m of src.matchAll(/widget: "([\w-]+)"/g)) ok(new RegExp(`(^|\\s)"?${m[1]}"?\\(\\w*\\)`, "m").test(widgets), `${ch}: widget ${m[1]} exists`);
   for (const m of src.matchAll(/\]\((.*?)\)/g)) ok(/^https:\/\//.test(m[1]), `${ch}: link is https`, m[1]);
   for (const m of src.matchAll(/\["[^"]+", "(http[^"]+)"\]/g)) ok(m[1].startsWith("https://"), `${ch}: source is https`, m[1]);
 }
@@ -38,6 +38,30 @@ const { THEMES } = await import(pathToFileURL(path.join(ROOT, "js/shared/themes.
 const { IDEAS } = await import(pathToFileURL(path.join(ROOT, "js/shared/ideabank.js")).href);
 for (const t of THEMES) ok(IDEAS[t.id]?.couple?.length && IDEAS[t.id]?.ai?.length, `idea bank has couple + AI ideas for ${t.id}`);
 for (const [id, b] of Object.entries(IDEAS)) for (const i of [...b.couple, ...b.ai]) ok(i.t && i.hook && i.plan?.length && i.why, `idea complete: ${id} / ${i.t}`);
+// the theme reader on real titles (tests/themes-cases.mjs): traps must all be right; real titles measured
+const { themesOf, isCopyText, SENSITIVE, MEDIA_CHANNEL: MEDIA } = await import(pathToFileURL(path.join(ROOT, "js/shared/themes.js")).href);
+const { CASES, TRAPS, HELD_OUT } = await import(pathToFileURL(path.join(ROOT, "tests/themes-cases.mjs")).href);
+for (const c of TRAPS) ok(JSON.stringify(themesOf(c.t).sort()) === JSON.stringify([...c.want].sort()), `theme trap: "${c.t}" -> ${c.want.join(",") || "none"}`, themesOf(c.t).join(","));
+const score = (cases) => {
+  let found = 0, want = 0;
+  const wrong = [];
+  for (const c of cases) {
+    const got = themesOf(c.t);
+    for (const w of c.want) { want++; if (got.includes(w)) found++; }
+    for (const g of got) if (!c.want.includes(g) && !c.may.includes(g)) wrong.push(`${g} <- ${c.t.slice(0, 40)}`);
+  }
+  return { rate: found / want, wrong };
+};
+const sc = score(CASES), sh = score(HELD_OUT);
+console.log(`   themes: tuning set ${(sc.rate * 100).toFixed(0)}% found, ${sc.wrong.length} wrong · held-out set ${(sh.rate * 100).toFixed(0)}% found, ${sh.wrong.length} wrong`);
+ok(sc.rate >= 0.88 && sc.wrong.length <= 2, "themes on 120 labelled real titles: 88%+ found, at most 2 wrong", sc.wrong.join(" | "));
+ok(sh.rate >= 0.8 && sh.wrong.length <= 5, "themes on 60 held-out real titles: 80%+ found, at most 5 wrong", sh.wrong.join(" | "));
+for (const [t, cn, want] of [["เมื่อเด็กหญิงกลายเป็นครู #สปอยหนัง", "", true], ["Coraline EP.6 พากย์ไทย", "", true], ["เลี้ยงรุ่นพลิกชีวิต", "มิมิละครสั้นAi", true],
+  ["【ศึกรักคู่แค้น】11", "", true], ["ลืมอะไรไม่ลืม #ละครสั้น #คลิปตลก", "", false], ["แข่งชาเลนจ์ ใครตอบถูกได้กิน", "Bie The Ska", false], ["ส่ง email ai", "", false]])
+  ok(isCopyText(t, cn) === want, `copy rule: "${t}" ${want ? "is" : "is not"} dubbed / spoiler / re-up`);
+ok(SENSITIVE.test("สภาลาวเดือดเมื่อส.ส. เสนอ") && SENSITIVE.test("นายกฯ สั่งย้าย") && !SENSITIVE.test("แฟนแกล้งกินส้มตำ"), "news / politics words are caught, daily titles are not");
+ok(MEDIA.test("3Plus") && MEDIA.test("Sanook.com") && MEDIA.test("LungNoteTV") && MEDIA.test("Thai PBS") && !MEDIA.test("Bie The Ska") && !MEDIA.test("Milin family"), "media channels the audit found are filtered, creators are not");
+
 // the key must never be inside the project
 ok(!fs.readdirSync(ROOT).some((f) => /key/i.test(f) && f.endsWith(".txt")), "no key file inside the project folder");
 ok(read(".gitignore").includes("youtube_key.txt"), ".gitignore guards the key file");
@@ -77,6 +101,18 @@ for (const m of months) ok(m.total === m.days.reduce((a, d) => a + json(`data/da
 ok((L.pastDays ?? 0) >= 7 || L.creator.themes.every((t) => t.prev == null), "no '▲ from 7 days' before 7 real days exist", `pastDays ${L.pastDays}`);
 ok((I.pastDays ?? 0) >= 7 || I.cards.every((c) => c.momentum == null), "ideas show no momentum before 7 real days");
 ok(I.ytAt === L.ytAt, "ideas carry the same YouTube read time as Mr News");
+// the creator ranking holds original creators only, and says how sure each number is
+const rows = [...L.creator.top, ...(L.creator.outliers || []), ...(L.creator.sure || [])];
+ok(rows.every((v) => !isCopyText(v.t, v.cn) && !SENSITIVE.test(v.t) && !MEDIA.test(v.cn)), "creator lists: no dubbed / spoiler / re-up, no news or politics, no media channel",
+  rows.filter((v) => isCopyText(v.t, v.cn) || SENSITIVE.test(v.t) || MEDIA.test(v.cn)).map((v) => v.t.slice(0, 30)).join(" | "));
+ok(rows.every((v) => ["m", "n", "e"].includes(v.q)), "every ranked video says measured / new / estimate");
+ok((L.creator.sure || []).every((v) => v.q !== "e"), "the 'numbers we can stand behind' list has no estimates");
+ok((L.creator.outliers || []).every((v, i, a) => v.x > 0 && (!i || a[i - 1].x >= v.x)), "the ×N list is sorted by ×N");
+const chCfg = json("config/channels.json");
+ok((L.copies || []).length > 0 && L.copies.every((v) => isCopyText(v.t, v.cn) || chCfg.copy[v.ch]) && L.counts.copies >= L.copies.length, "dubbed / spoiler clips are kept apart, each for a reason, and counted");
+ok(L.lao.top.every((v) => !SENSITIVE.test(v.t)), "Lao creator list has no news / politics titles", L.lao.top.filter((v) => SENSITIVE.test(v.t)).map((v) => v.t.slice(0, 30)).join(" | "));
+ok(L.sample?.searches >= 20 && L.sample.words.length === L.sample.searches, "latest.json says which search words the sample comes from");
+ok(L.creator.none >= 0 && L.creator.none < 1, "share of views with no theme is reported");
 const { lessonFits, MAX_SEC } = await import(pathToFileURL(path.join(ROOT, "scripts/fetch-learn.mjs")).href);
 for (const [k, l] of Object.entries(LE.lessons)) {
   const c = learnCfg.lessons[k];
@@ -127,15 +163,45 @@ try {
     if (w === 380 || w === 1440) await page.shot(`news-${w}-${dark ? "dark" : "light"}.png`);
     if (w === 380) {
       // the estimate labels open on a TAP and stay inside a phone screen
-      await page.eval(`document.querySelector(".info.est").click(); return true;`);
+      await page.eval(`window.__est = [...document.querySelectorAll(".info.est")].find((b) => b.nextElementSibling.textContent.includes("÷ ชั่วโมง")); window.__est.click(); return true;`);
       await sleep(200);
       const problems = await page.eval(LAYOUT_CHECK);
-      ok(await page.eval(`return !document.querySelector(".info-pop").hidden && document.querySelector(".info-pop").textContent.includes("ยอดวิวทั้งหมด ÷ ชั่วโมง");`), `${w}px ${dark ? "dark" : "light"}: tapping "ประมาณ" shows how it is worked out`);
+      ok(await page.eval(`return !window.__est.nextElementSibling.hidden && window.__est.nextElementSibling.textContent.includes("ยอดวิวทั้งหมด ÷ ชั่วโมง");`), `${w}px ${dark ? "dark" : "light"}: tapping "ประมาณ" shows how it is worked out`);
       ok(!problems.length, `${w}px ${dark ? "dark" : "light"}: open explanation fits the screen`, problems.join(" | "));
       await page.shot(`news-est-${dark ? "dark" : "light"}.png`);
     }
     await page.close();
   }
+
+  // ---- the creator ranking: sort / length / flag ----
+  const k = await browser.newPage({ width: 380, height: 820 });
+  await k.goto(BASE + "#/news", 300);
+  await k.eval(`localStorage.clear(); return true;`);
+  await k.goto(BASE + "#/notes", 300);
+  await k.eval(`location.hash = "#/news"; return true;`);
+  ok(await k.until(`[...document.querySelectorAll(".seg button")].some(b => b.textContent === "×N ของปกติช่อง")`, 15000), "ranking offers ×N and 24 h views");
+  ok(await k.eval(`return document.querySelector(".vcard .info.x") !== null && document.querySelector(".vcard .looks") !== null;`), "ranked cards show ×N and what can be seen in the clip");
+  await k.eval(`[...document.querySelectorAll(".seg button")].find(b => b.textContent === "Shorts").click(); return true;`);
+  await sleep(300);
+  ok(await k.eval(`return [...document.querySelectorAll(".section .vlist")][0].querySelectorAll(".vcard").length > 0 && [...document.querySelectorAll(".section .vlist")][0].innerText.includes("คลิปยาว") === false;`), "Shorts filter shows Shorts only");
+  await k.eval(`[...document.querySelectorAll(".seg button")].find(b => b.textContent === "ทุกความยาว").click(); [...document.querySelectorAll(".seg button")].find(b => b.textContent === "วิว 24 ชม.").click(); return true;`);
+  await sleep(300);
+  ok(await k.eval(`return [...document.querySelectorAll(".seg button")].some(b => b.textContent === "เฉพาะตัวเลขจริง") && ![...document.querySelectorAll(".section .vlist")][0].querySelector(".info.est");`), "24 h views + 'numbers we can stand behind' shows no estimate");
+  const firstCh = await k.eval(`return [...document.querySelectorAll(".section .vlist")][0].querySelector(".vcard .meta").textContent.split(" · ")[0];`);
+  await k.eval(`[...document.querySelectorAll(".section .vlist")][0].querySelector(".vcard button[title*='ต้นฉบับ']").click(); return true;`);
+  await sleep(300);
+  ok(await k.eval(`return Object.keys(JSON.parse(localStorage.getItem("mn_flagged") || "{}")).length === 1 && document.querySelector("main").innerText.includes("ซ่อนไว้ 1 ช่อง");`), "🚩 hides a channel on this device and says so", firstCh);
+  const flaggedName = await k.eval(`return Object.values(JSON.parse(localStorage.getItem("mn_flagged") || "{}"))[0];`);
+  ok(await k.eval(`const n = ${JSON.stringify(flaggedName)}; return ![...[...document.querySelectorAll(".section .vlist")][0].querySelectorAll(".vcard .meta")].some((m) => m.textContent.startsWith(n + " · "));`), "the flagged channel is gone from the list", flaggedName);
+  ok(await k.eval(`return [...document.querySelectorAll("h2")].some(h => h.textContent.includes("พากย์ / สปอย / รีอัป"));`), "dubbed / spoiler clips are shown apart");
+  ok(await k.eval(`return document.querySelector(".page-head").innerText.includes("คำค้น");`), "news head says the numbers come from the robot's search words");
+  const layout = await k.eval(LAYOUT_CHECK);
+  ok(!layout.length, "380px: ranking controls fit the screen", layout.join(" | "));
+  await k.shot("news-rank-380.png");
+  await k.goto(BASE + "#/handbook", 300);
+  ok(await k.until(`document.querySelector("main").innerText.includes("Mr News วันที่")`, 15000), "lesson numbers are read from today's data (no fixed 86%)");
+  await k.eval(`localStorage.clear(); return true;`);
+  await k.close();
 
   // ---- honest time labels ----
   const t = await browser.newPage({ width: 380, height: 820 });

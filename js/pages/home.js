@@ -14,7 +14,7 @@ export async function render(main) {
   main.append(h("div", { class: "book-cover" },
     h("div", { class: "note" }, hello + " Win 👋"),
     h("h1", {}, "สมุดครีเอเตอร์ของ Win"),
-    h("p", { style: { maxWidth: "62ch", color: "var(--ink-2)" } }, "หนังสือที่อัปเดตตัวเองทุกวัน: ดูว่าคนไทย-ลาวดูอะไร (Mr News) → คิดไอเดียของเราเอง (Mr Idea) → เรียนทำคลิปทั้งแบบคนจริงและ AI → จดทุกอย่างในสมุด"),
+    h("p", { style: { maxWidth: "62ch", color: "var(--ink-2)" } }, "หนังสือที่อัปเดตตัวเองทุกวัน: ดูว่าคลิปไทย-ลาวแบบไหนกำลังได้วิว (Mr News) → คิดไอเดียของเราเอง (Mr Idea) → เรียนทำคลิปทั้งแบบคนจริงและ AI → จดทุกอย่างในสมุด"),
     h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/news" }, "📰 เปิด Mr News วันนี้"), h("a", { class: "btn", href: "#/idea" }, "💡 ไอเดียวันนี้"))));
 
   main.append(installCard());
@@ -31,7 +31,7 @@ export async function render(main) {
       est ? h("div", { class: "row note", style: { marginBottom: "8px" } }, info("การ์ดชุดนี้ส่วนใหญ่เป็นค่าประมาณ", EST_TEXT, "est")) : null,
       h("div", { class: "grid g3" },
         h("a", { class: "tile", href: "#/news", style: { textDecoration: "none", color: "inherit" } },
-          h("div", { class: "label" }, "คนไทยดูหมวดไหนมากที่สุด"), h("div", { class: "value" }, t ? `${THEME_BY_ID[t.id]?.icon || ""} ${THEME_BY_ID[t.id]?.name || t.id}` : "–"), h("div", { class: "delta" }, t ? `${pct(t.share)} ของวิวคลิปครีเอเตอร์` : "")),
+          h("div", { class: "label" }, "หมวดที่ได้วิวมากสุด (ในคลิปที่ระบบเจอ)"), h("div", { class: "value" }, t ? `${THEME_BY_ID[t.id]?.icon || ""} ${THEME_BY_ID[t.id]?.name || t.id}` : "–"), h("div", { class: "delta" }, t ? `${pct(t.share)} ของวิวคลิปครีเอเตอร์ต้นฉบับ` : "")),
         h("a", { class: "tile", href: "#/news", style: { textDecoration: "none", color: "inherit" } },
           h("div", { class: "label" }, "Shorts ได้วิวไปกี่ %"), h("div", { class: "value" }, pct(c.formats.short.v / (c.formats.short.v + c.formats.long.v || 1))), h("div", { class: "delta" }, `Top 50 ยาวกลางๆ ${dur(c.formats.medianTop50)} นาที`)),
         h("a", { class: "tile", href: "#/idea", style: { textDecoration: "none", color: "inherit" } },

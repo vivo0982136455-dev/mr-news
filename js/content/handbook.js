@@ -23,7 +23,7 @@ export const LESSONS = [
         ["ต้องโพสต์ทุกวัน ไม่งั้นโดนลงโทษ", "❌ ไม่มีแหล่งทางการ — ทำต่อเนื่องดีกว่าโพสต์เยอะแล้วหยุด"],
         ["ใส่ #FYP แล้วขึ้นหน้าแรก", "❌ TikTok เคยตอบว่าเป็นความเชื่อผิด"],
       ] } },
-      { tip: "**สิ่งที่ Mr News บอกเราตั้งแต่วันแรก:** Shorts ได้วิวราว 86% ของคลิปครีเอเตอร์ไทย และคลิปที่ติด Top 50 ยาวกลางๆ ราว 30 วินาที — คลิปสั้นที่จบเรื่องได้ คืออาวุธหลักของมือใหม่" },
+      { widget: "live-facts" },
       { src: [["YouTube Blog", "https://blog.youtube/inside-youtube/on-youtubes-recommendation-system/"], ["TikTok Newsroom", "https://newsroom.tiktok.com/en-us/how-tiktok-recommends-videos-for-you/"], ["ProPakistani (Meta originality)", "https://propakistani.pk/2026/03/15/facebook-moves-to-reward-original-creators-crack-down-on-copycats/"], ["TikTok Next 2026", "https://ads.tiktok.com/business/ko/blog/2026-whats-next-trend-report"]] },
     ],
   },
