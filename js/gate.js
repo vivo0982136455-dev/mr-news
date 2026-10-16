@@ -63,11 +63,12 @@ function installSteps(redraw) {
   }
   const st = installState();
   if (st === "installed") return [h("div", { class: "gate-ok", role: "status" }, "✅ ติดตั้งแล้ว — ปิดหน้านี้ แล้วเปิดจากไอคอน MN บนหน้าจอ")];
-  if (st === "ready") return [h("button", { class: "gate-go", type: "button", onclick: async () => { await askInstall(); redraw(); } }, "ติดตั้งแอป")];
+  // iPhone first: Apple gives web pages no install button, only "เพิ่มไปยังหน้าจอโฮม"
   if (isIOS()) return [h("ol", { class: "gate-steps" },
     h("li", {}, "เปิดหน้านี้ใน Safari"),
     h("li", {}, "แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่าง"),
     h("li", {}, "เลือก \"เพิ่มไปยังหน้าจอโฮม\" → แตะ \"เพิ่ม\""))];
+  if (st === "ready") return [h("button", { class: "gate-go", type: "button", onclick: async () => { await askInstall(); redraw(); } }, "ติดตั้งแอป")];
   const phone = window.matchMedia("(pointer: coarse)").matches;
   return [h("ol", { class: "gate-steps" }, phone
     ? [h("li", {}, "แตะ ⋮ มุมขวาบนของเบราว์เซอร์"), h("li", {}, "เลือก \"ติดตั้งแอป\" (หรือ \"เพิ่มลงในหน้าจอหลัก\")"), h("li", {}, "แตะ \"ติดตั้ง\"")]

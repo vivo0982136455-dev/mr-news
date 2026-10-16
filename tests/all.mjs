@@ -440,6 +440,15 @@ try {
   ok(await ln.until(`document.querySelector(".gate-warn") && document.querySelector(".gate-warn").textContent.includes("LINE")`, 15000), "inside LINE: says LINE cannot install");
   ok(await ln.eval(`return document.querySelector("a.gate-go").href.includes("openExternalBrowser=1");`), "inside LINE: a button opens the page in the phone's browser");
   await ln.close();
+  // iPhone: no install button exists there - the Safari steps
+  const ip = await browser.newPage({ width: 390, height: 844 });
+  await ip.cdp("Emulation.setUserAgentOverride", { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1" });
+  await ip.goto(SITE + "#/notes", 800);
+  await ip.eval(`localStorage.clear(); return true;`);
+  await ip.cdp("Page.reload");
+  ok(await ip.until(`document.querySelector(".gate-steps") && document.querySelector(".gate-steps").innerText.includes("เพิ่มไปยังหน้าจอโฮม") && !document.querySelector(".gate-go")`, 15000), "iPhone: the Safari steps (เพิ่มไปยังหน้าจอโฮม), no install button");
+  await ip.shot("gate-iphone-390.png");
+  await ip.close();
   // the installed app: the opening screen every time the app opens, "เปิด" goes in, a reload in the same session skips it
   const sp = await browser.newPage({ width: 380, height: 820 });
   // headless Edge cannot emulate display-mode, so the page is told it runs as the installed app before it loads
