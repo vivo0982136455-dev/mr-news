@@ -436,7 +436,7 @@ html.gated, html.gated body { overflow: hidden; }
 .gate-warn { background: var(--warn-bg); color: var(--warn-ink); border-radius: 12px; padding: 10px 12px; text-align: left; }
 .gate-ok { background: var(--surface); border: 2px solid var(--up); border-radius: 12px; padding: 12px; font-weight: 600; }
 .gate-web { margin-top: auto; min-height: 44px; background: none; border: 0; color: var(--muted); text-decoration: underline; font: inherit; cursor: pointer; }
-.gate-layer:has(.splash) { background: #1d1b18; }
+.gate-layer.dark { background: #1d1b18; }
 .splash { justify-content: center; gap: 14px; color: #f3f1ea; }
 .splash .gate-kicker { color: #b4b2a9; letter-spacing: 0.06em; margin-top: 12px; }
 .splash h1 { color: #f3f1ea; font-size: 2rem; }

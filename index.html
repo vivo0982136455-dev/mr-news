@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Mr News — สมุดครีเอเตอร์</title>
-  <meta name="description" content="สมุดครีเอเตอร์ของ Win: Mr News (คนไทย-ลาวดูอะไรวันนี้), Mr Idea, คู่มือหาเงิน, บทเรียนทำคลิปคนจริงและคลิป AI, สมุดโน้ต">
+  <meta name="description" content="จากมือใหม่ สู่ครีเอเตอร์มืออาชีพ: คลิปไทย-ลาวที่กำลังได้วิวทุกวัน ไอเดียใหม่ทุกเช้า บันได 5 ขั้น บทเรียนทำคลิปคนจริงและคลิป AI">
   <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -17,11 +17,40 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+Lao:wght@400;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Noto+Sans+Lao:wght@400;600&display=swap" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="css/app.css">
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <noscript>หน้านี้ต้องเปิด JavaScript</noscript>
+  <!-- shown at once, replaced by the book when it starts; if the book cannot start, it says why and what to do -->
+  <div id="boot" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font-family:system-ui,sans-serif;background:#f4f1ea;color:#1d1b18">
+    <img src="icons/icon-192.png" width="72" height="72" alt="" style="border-radius:18px">
+    <div id="boot-msg" style="font-size:18px">กำลังเปิด Mr News…</div>
+  </div>
+  <noscript><p style="text-align:center;font-family:sans-serif">หน้านี้ต้องเปิด JavaScript</p></noscript>
+  <script>
+    (function () {
+      var errors = [];
+      window.addEventListener("error", function (e) { errors.push(e.message || "error"); });
+      var ua = navigator.userAgent;
+      var inApp = / Line\//i.test(ua) ? "LINE" : /FBAN|FBAV|FB_IAB|FB4A|Messenger/i.test(ua) ? "Messenger / Facebook" : /Instagram/i.test(ua) ? "Instagram" : /musical_ly|BytedanceWebview|TikTok/i.test(ua) ? "TikTok" : "";
+      function help() {
+        if (document.querySelector(".app")) return; // the book started
+        var box = document.getElementById("boot-msg");
+        if (!box) return;
+        var ext = location.href.split("#")[0];
+        ext += (ext.indexOf("?") < 0 ? "?" : "&") + "openExternalBrowser=1";
+        box.innerHTML = "<b>เปิด Mr News ไม่ขึ้นในหน้านี้</b>" +
+          "<p style='font-size:15px;line-height:1.7;margin:10px 0'>" +
+          (inApp ? "ตอนนี้เปิดอยู่ใน " + inApp + " — แตะ ⋯ หรือ ⋮ มุมขวาบน แล้วเลือก <b>\"เปิดในเบราว์เซอร์\"</b> (Chrome หรือ Safari)<br>" : "") +
+          "ถ้ายังไม่ขึ้น: อัปเดตมือถือ หรือเปิดลิงก์ใน Chrome / Safari เวอร์ชันล่าสุด</p>" +
+          "<a href='" + ext + "' style='display:inline-block;padding:12px 18px;border-radius:12px;background:#b8431a;color:#fff;text-decoration:none'>ลองเปิดอีกครั้ง</a>" +
+          (errors.length ? "<p style='font-size:12px;color:#66645e;margin-top:14px'>บอก Steep: " + String(errors[0]).replace(/</g, "&lt;").slice(0, 120) + "</p>" : "");
+      }
+      window.addEventListener("load", function () { setTimeout(help, errors.length ? 0 : 8000); });
+      setTimeout(help, 15000); // even if "load" never comes (very slow network)
+    })();
+  </script>
+  <script nomodule>document.getElementById("boot-msg").innerHTML = "เบราว์เซอร์นี้เก่าเกินไป — เปิดลิงก์ใน Chrome หรือ Safari เวอร์ชันล่าสุด";</script>
 </body>
 </html>

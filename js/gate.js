@@ -89,7 +89,7 @@ function splash(onOpen) {
 
 let layer = null;
 function open(el) {
-  layer = h("div", { class: "gate-layer" }, el);
+  layer = h("div", { class: "gate-layer" + (el.classList.contains("splash") ? " dark" : "") }, el);
   document.body.append(layer);
   document.documentElement.classList.add("gated");
   layer.addEventListener("keydown", (e) => { if (e.key === "Escape" && el.classList.contains("splash")) el.querySelector(".gate-open").click(); });

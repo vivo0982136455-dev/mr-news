@@ -449,6 +449,36 @@ try {
   ok(await ip.until(`document.querySelector(".gate-steps") && document.querySelector(".gate-steps").innerText.includes("เพิ่มไปยังหน้าจอโฮม") && !document.querySelector(".gate-go")`, 15000), "iPhone: the Safari steps (เพิ่มไปยังหน้าจอโฮม), no install button");
   await ip.shot("gate-iphone-390.png");
   await ip.close();
+  // an OLD iPhone (iOS before 16.4) cannot read look-behind in a regular expression: the page must still open
+  const old = await browser.newPage({ width: 375, height: 667 });
+  await old.cdp("Page.addScriptToEvaluateOnNewDocument", { source: `(() => {
+    const R = window.RegExp;
+    window.RegExp = new Proxy(R, { construct(t, args) {
+      const src = args[0] instanceof R ? args[0].source : String(args[0]);
+      if (src.includes("(?<!") || src.includes("(?<=")) throw new SyntaxError("Invalid regular expression: invalid group specifier name");
+      return new t(...args);
+    } });
+  })();` });
+  await old.goto(BASE + "#/news", 300);
+  ok(await old.until(`document.querySelector(".app") && document.querySelector("main h1")`, 20000), "old iPhone without look-behind: the book still opens");
+  ok(await old.eval(`return document.querySelectorAll(".vcard").length > 0;`), "old iPhone: Mr News still shows the clips", JSON.stringify(old.errors));
+  await old.close();
+  // no regular expression LITERAL with look-behind anywhere in the page code (that would stop the page before it runs)
+  for (const f of fs.readdirSync(path.join(ROOT, "js"), { recursive: true }).filter((x) => String(x).endsWith(".js"))) {
+    const lines = read(path.join("js", String(f))).split("\n").filter((l) => /\(\?<[!=]/.test(l));
+    ok(lines.every((l) => /["'`]/.test(l.split("(?<")[0]) || /String\.raw`/.test(l)), `js/${f}: look-behind only inside strings built at run time`, lines.find((l) => !/["'`]/.test(l.split("(?<")[0])));
+  }
+  // the app cannot start at all (here: its code is blocked) -> after a few seconds the page says what to do
+  const dead = await browser.newPage({ width: 375, height: 667 });
+  await dead.cdp("Network.enable");
+  await dead.cdp("Network.setBlockedURLs", { urls: ["*js/app.js*"] });
+  await dead.cdp("Emulation.setUserAgentOverride", { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 15_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/19H384 [FBAN/MessengerForiOS;FBAV/480.0]" });
+  await dead.goto(SITE + "#/", 300);
+  ok(await dead.until(`document.getElementById("boot")`, 5000), "a loading screen shows at once (no blank white page)");
+  ok(await dead.until(`document.getElementById("boot-msg").innerText.includes("เปิด Mr News ไม่ขึ้น") && document.getElementById("boot-msg").innerText.includes("Messenger") && document.getElementById("boot-msg").innerText.includes("เปิดในเบราว์เซอร์")`, 20000),
+    "if the book cannot start inside Messenger: says to open it in the phone's browser");
+  await dead.shot("boot-fail-375.png");
+  await dead.close();
   // the installed app: the opening screen every time the app opens, "เปิด" goes in, a reload in the same session skips it
   const sp = await browser.newPage({ width: 380, height: 820 });
   // headless Edge cannot emulate display-mode, so the page is told it runs as the installed app before it loads

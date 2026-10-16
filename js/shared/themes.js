@@ -11,7 +11,16 @@
 
 // Thai / Lao word sources are regex pieces (may carry lookarounds); Latin words get letter boundaries
 const lat = (...w) => w.map((x) => `(?<![a-z0-9])${x}(?![a-z0-9])`);
-const re = (...parts) => new RegExp(parts.flat().join("|"), "i");
+// Older iPhones (iOS before 16.4, also inside Messenger / LINE there) cannot read a look-behind "(?<!…)": a regular
+// expression written with one stops the WHOLE page from loading. So every pattern here is built at run time, and
+// where look-behind is missing it is left out (a few Thai words match less carefully - only the robot, in Node,
+// sorts videos into themes; the pages only need the names and the media list).
+const LOOKBEHIND = /\(\?<[!=](?:[^()\\]|\\.)*\)/g;
+export function rx(source, flags = "i") {
+  try { return new RegExp(source, flags); } catch { return new RegExp(source.replace(LOOKBEHIND, ""), flags); }
+}
+export const withoutLookbehind = (source) => source.replace(LOOKBEHIND, ""); // for the tests
+const re = (...parts) => rx(parts.flat().join("|"));
 
 export const THEMES = [
   { id: "couple", name: "คู่รัก / แฟน", icon: "💑", fit: 3,
@@ -75,23 +84,23 @@ export const CATEGORY = {
 export const NOT_CREATOR_CATEGORIES = new Set([10, 25, 30, 43, 44]);
 // ... and channels of TV stations, record labels and news companies - ONE list, used by the robot and the pages
 // (names only used to filter, never shown as jokes)
-export const MEDIA_CHANNEL = new RegExp([
+export const MEDIA_CHANNEL = rx([
   "official", "ทีวี", "ช่อง ?\\d", "ข่าว", "เรคคอร์ด", "มิวสิค", "อมรินทร์", "ไทยรัฐ", "มติชน", "เดลินิวส์", "ลุงโน้ต", "ເພງ", "ຂ່າວ",
   ...lat("tv", "hd ?\\d", "news", "records", "music", "workpoint", "one31", "ch ?\\d+", "gmm\\w*", "amarin\\w*", "thairath", "pptv\\w*",
     "mono ?29", "true4u", "nation\\w*", "3plus", "sanook(\\.com)?", "thai ?pbs", "tnn\\w*", "mcot", "lungnote\\w*", "matichon", "khaosod",
     "dailynews", "spring ?news", "nbt\\w*", "bright ?tv", "top ?news", "kapook", "vevo"),
   "topic$",
-].join("|"), "i");
+].join("|"));
 
 // Not original work: dubbed / spoiler / re-uploaded clips and mass-made short dramas. YouTube does not pay for
 // "reused" or template-made content, so the book shows these apart, marked "อย่าเลียนแบบ" (do not copy).
 // Read from the title AND the channel name. Channels that hide it can be listed by hand in config/channels.json.
 // Not "ละครสั้น" alone: many Thai creators film their own comedy skits under #ละครสั้น; only AI-made ones go here.
-export const COPY_WORDS = /สปอย|พากย์|สรุปเนื้อเรื่อง|สรุปหนัง|เล่าหนัง|ละครสั้น ?ai|(?<![a-z])ai ?ละคร|ซีรีส์จีน|ซีรี่ส์จีน|หนังจีน|รีอัพ|รีอัป|(?<![a-z])re-?up(?![a-z])|short ?drama|[【】]|[぀-ヿ一-鿿가-힯]/i;
+export const COPY_WORDS = rx(String.raw`สปอย|พากย์|สรุปเนื้อเรื่อง|สรุปหนัง|เล่าหนัง|ละครสั้น ?ai|(?<![a-z])ai ?ละคร|ซีรีส์จีน|ซีรี่ส์จีน|หนังจีน|รีอัพ|รีอัป|(?<![a-z])re-?up(?![a-z])|short ?drama|[【】]|[぀-ヿ一-鿿가-힯]`);
 export const isCopyText = (title, channel) => COPY_WORDS.test(String(title || "")) || COPY_WORDS.test(String(channel || ""));
 
 // News and politics are outside Win's rules (no politics) - kept out of the Lao creator view and Mr Idea's proof
-export const SENSITIVE = /ข่าว|การเมือง|นายก(?!ฯ? ?สมาคม)|รัฐมนตรี|รัฐบาล|ส\.ส\.|เลือกตั้ง|พรรค|จับกุม|คอร์รัปชัน|ทุจริต|ຂ່າວ|ນາຍົກ|ລັດຖະມົນຕີ|ລັດຖະບານ|ສະພາ|ກອງປະຊຸມ|ຈັບກຸມ|ສໍ້ລາດ|ลงนาม|ລົງນາມ|กระทรวง|ກະຊວງ|สหรัฐ|(?<![a-z])news(?![a-z])/i;
+export const SENSITIVE = rx(String.raw`ข่าว|การเมือง|นายก(?!ฯ? ?สมาคม)|รัฐมนตรี|รัฐบาล|ส\.ส\.|เลือกตั้ง|พรรค|จับกุม|คอร์รัปชัน|ทุจริต|ຂ່າວ|ນາຍົກ|ລັດຖະມົນຕີ|ລັດຖະບານ|ສະພາ|ກອງປະຊຸມ|ຈັບກຸມ|ສໍ້ລາດ|ลงนาม|ລົງນາມ|กระทรวง|ກະຊວງ|สหรัฐ|(?<![a-z])news(?![a-z])`);
 
 export function isCreatorVideo(v) {
   if (NOT_CREATOR_CATEGORIES.has(Number(v.cat))) return false;
