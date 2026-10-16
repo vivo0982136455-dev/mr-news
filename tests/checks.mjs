@@ -37,6 +37,6 @@ export const LAYOUT_CHECK = `
   }
   const txt = document.querySelector("main").innerText;
   if (/undefined|NaN|\\[object|null/.test(txt)) out.push("bad text: " + (txt.match(/.{0,30}(undefined|NaN|\\[object|null).{0,20}/) || [""])[0]);
-  if (txt.includes("เปิดหน้านี้ไม่ได้")) out.push("page failed: " + txt.slice(0, 200));
+  if (document.querySelector(".page-error")) out.push("page failed: " + txt.slice(0, 200)); // (not the words: the Lao check page lists them)
   if (!document.querySelector("main h1")) out.push("no heading");
   return out;`;

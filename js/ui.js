@@ -1,5 +1,10 @@
 // Small UI toolkit. Every text from data (YouTube titles, Wikipedia, notes) goes in as TEXT, never as HTML.
 import { THEME_BY_ID } from "./shared/themes.js";
+import { tr, lang } from "./lang.js";
+
+// labels a person reads, translated like the text (never "value", "href", "src"... : those are data)
+const TR_ATTRS = new Set(["title", "aria-label", "placeholder", "alt"]);
+const L = (th, lo) => (lang() === "lo" ? lo : th);
 
 // h("div", { class: "x", onclick: fn }, "text", child, [more]) -> element
 export function h(tag, attrs, ...kids) {
@@ -9,7 +14,7 @@ export function h(tag, attrs, ...kids) {
     if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
     else if (k === "html") el.innerHTML = v; // only for our own trusted strings (md() output, SVG figures)
     else if (k === "style" && typeof v === "object") Object.assign(el.style, v);
-    else el.setAttribute(k, v === true ? "" : v);
+    else el.setAttribute(k, v === true ? "" : TR_ATTRS.has(k) ? tr(String(v)) : v);
   }
   add(el, kids);
   return el;
@@ -24,7 +29,7 @@ function add(el, kids) {
   for (const k of kids) {
     if (k == null || k === false) continue;
     if (Array.isArray(k)) add(el, k);
-    else el.append(k instanceof Node ? k : document.createTextNode(String(k)));
+    else el.append(k instanceof Node ? k : document.createTextNode(typeof k === "string" ? tr(k) : String(k)));
   }
 }
 
@@ -46,8 +51,8 @@ export const mdEl = (tag, s, attrs = {}) => h(tag, { ...attrs, html: md(s) });
 export function num(n, { compact = true } = {}) {
   if (n == null || isNaN(n)) return "–";
   const a = Math.abs(n);
-  if (compact && a >= 1e6) return (n / 1e6).toLocaleString("th-TH", { maximumFractionDigits: a >= 1e8 ? 0 : 1 }) + " ล้าน";
-  if (compact && a >= 1e5) return (n / 1e5).toLocaleString("th-TH", { maximumFractionDigits: 1 }) + " แสน";
+  if (compact && a >= 1e6) return (n / 1e6).toLocaleString("th-TH", { maximumFractionDigits: a >= 1e8 ? 0 : 1 }) + L(" ล้าน", " ລ້ານ");
+  if (compact && a >= 1e5) return (n / 1e5).toLocaleString("th-TH", { maximumFractionDigits: 1 }) + L(" แสน", " ແສນ");
   return Math.round(n).toLocaleString("th-TH");
 }
 export const pct = (x, d = 0) => (x == null || isNaN(x) ? "–" : (x * 100).toLocaleString("th-TH", { maximumFractionDigits: d }) + "%");
@@ -60,15 +65,17 @@ export function dur(sec) {
 }
 export function ago(iso) {
   const h = (Date.now() - Date.parse(iso)) / 3600e3;
-  if (h < 1) return `${Math.max(1, Math.round(h * 60))} นาทีที่แล้ว`;
-  if (h < 48) return `${Math.round(h)} ชม. ที่แล้ว`;
-  return `${Math.round(h / 24)} วันที่แล้ว`;
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))} ${L("นาทีที่แล้ว", "ນາທີກ່ອນ")}`;
+  if (h < 48) return `${Math.round(h)} ${L("ชม. ที่แล้ว", "ຊມ. ກ່ອນ")}`;
+  return `${Math.round(h / 24)} ${L("วันที่แล้ว", "ມື້ກ່ອນ")}`;
 }
 const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 const MONTHS_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-export const thDay = (ymd) => { const [y, m, d] = ymd.split("-").map(Number); return `${d} ${MONTHS[m - 1]} ${y + 543}`; };
-export const thMonth = (ym) => { const [y, m] = ym.split("-").map(Number); return `${MONTHS_FULL[m - 1]} ${y + 543}`; };
-export const thTime = (iso) => { const d = new Date(Date.parse(iso) + 7 * 3600e3); return `${thDay(d.toISOString().slice(0, 10))} ${d.toISOString().slice(11, 16)} น.`; };
+// Laos counts years the common way (2026), Thailand in the Buddhist era (2569)
+const LO_MONTHS = ["ມັງກອນ", "ກຸມພາ", "ມີນາ", "ເມສາ", "ພຶດສະພາ", "ມິຖຸນາ", "ກໍລະກົດ", "ສິງຫາ", "ກັນຍາ", "ຕຸລາ", "ພະຈິກ", "ທັນວາ"];
+export const thDay = (ymd) => { const [y, m, d] = ymd.split("-").map(Number); return lang() === "lo" ? `${d} ${LO_MONTHS[m - 1]} ${y}` : `${d} ${MONTHS[m - 1]} ${y + 543}`; };
+export const thMonth = (ym) => { const [y, m] = ym.split("-").map(Number); return lang() === "lo" ? `${LO_MONTHS[m - 1]} ${y}` : `${MONTHS_FULL[m - 1]} ${y + 543}`; };
+export const thTime = (iso) => { const d = new Date(Date.parse(iso) + 7 * 3600e3); return `${thDay(d.toISOString().slice(0, 10))} ${d.toISOString().slice(11, 16)}${L(" น.", "")}`; };
 
 export const thaiToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 
@@ -137,7 +144,7 @@ let toastTimer;
 export function toast(msg) {
   let el = document.querySelector(".toast");
   if (!el) document.body.append((el = h("div", { class: "toast", role: "status" })));
-  el.textContent = msg;
+  el.textContent = tr(msg);
   el.classList.add("on");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("on"), 2200);

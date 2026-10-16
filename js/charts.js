@@ -5,6 +5,9 @@
 // Every chart is drawn at the REAL width of its box (redrawn when the box changes size), so text stays 13 px
 // on a phone and on a computer instead of being scaled down.
 import { h, num } from "./ui.js";
+import { tr } from "./lang.js";
+
+const trLabels = (list) => list.map((x) => ({ ...x, label: tr(x.label) }));
 
 const NS = "http://www.w3.org/2000/svg";
 const s = (tag, attrs = {}, ...kids) => {
@@ -85,7 +88,7 @@ function frame(draw, rows, head, extra) {
     const show = tableWrap.hidden;
     tableWrap.hidden = !show;
     box.hidden = show;
-    btn.textContent = show ? "ดูเป็นกราฟ" : "ดูเป็นตาราง";
+    btn.textContent = tr(show ? "ดูเป็นกราฟ" : "ดูเป็นตาราง");
   } }, "ดูเป็นตาราง");
   return h("div", {}, extra || null, box, tableWrap, h("div", { class: "row", style: { justifyContent: "flex-end", marginTop: "6px" } }, btn));
 }
@@ -96,6 +99,7 @@ const svgRoot = (width, height, label) => s("svg", { viewBox: `0 0 ${width} ${he
  * One series -> one colour, no legend (the card title names it).
  */
 export function hbars(items, { color = "var(--s1)", format = (v) => num(v), head = ["", "ค่า"], max } = {}) {
+  items = trLabels(items);
   const draw = (width) => {
     const rowH = 30, bar = 18, top = 4;
     const valTextW = (i) => textW(i.display ?? format(i.value), 13) * 1.2;
@@ -129,6 +133,7 @@ export function hbars(items, { color = "var(--s1)", format = (v) => num(v), head
  * legend always (2+ series); a % label inside a segment only when it fits.
  */
 export function stack(parts, { format = (v) => num(v), head = ["", "ค่า", "สัดส่วน"] } = {}) {
+  parts = trLabels(parts);
   const total = parts.reduce((a, p) => a + p.value, 0) || 1;
   const draw = (width) => {
     const H = 34;
@@ -159,6 +164,7 @@ export function stack(parts, { format = (v) => num(v), head = ["", "ค่า", 
 
 /** Columns over a small ordinal axis (e.g. 24 hours). items: [{ label, value, tip }] single series. */
 export function columns(items, { color = "var(--s1)", height = 170, format = (v) => num(v), head = ["", "ค่า"], every = 1 } = {}) {
+  items = trLabels(items);
   const draw = (width) => {
     const left = 4, bottom = 22, top = 18;
     const plotH = height - bottom - top;
@@ -191,6 +197,7 @@ export function columns(items, { color = "var(--s1)", height = 170, format = (v)
  * Single axis only. Crosshair tooltip on hover / tap.
  */
 export function lines(series, { height = 230, format = (v) => num(v), head = ["วัน"], xLabel = (x) => x } = {}) {
+  series = trLabels(series);
   const xs = [...new Set(series.flatMap((sr) => sr.points.map((p) => p.x)))].sort();
   const draw = (width) => {
     const left = 44, top = 12, bottom = 24;

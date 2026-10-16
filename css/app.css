@@ -447,3 +447,19 @@ html.gated, html.gated body { overflow: hidden; }
 .splash .gate-sub .line + .line { margin-top: 2px; }
 @keyframes gate-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .gate-arrow { animation: none; } }
+
+/* ---- language: ไทย / ລາວ ---- */
+/* Lao first when the book is in Lao (Thai letters still fall back to the Thai font) */
+html.lo { --font: "Noto Sans Lao", "IBM Plex Sans Thai", "Leelawadee UI", system-ui, -apple-system, "Segoe UI", sans-serif; }
+[lang="lo"] { font-family: "Noto Sans Lao", var(--font); }
+.lang-btn { font-weight: 600; }
+.gate { position: relative; }
+.gate-lang { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 12px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
+.splash .gate-lang { background: transparent; color: #f3f1ea; border-color: #5f5e5a; }
+.lao-list { display: flex; flex-direction: column; gap: 8px; }
+.lao-row { border: 1px solid var(--line); border-left: 4px solid var(--line-2); border-radius: 12px; padding: 10px 12px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.lao-row.ok { border-left-color: var(--up); }
+.lao-row.fixed { border-left-color: var(--brand); }
+.lao-th { color: var(--muted); font-size: var(--fs-sm); }
+.lao-lo { font-size: 1.1rem; font-weight: 600; }
+.lao-input { width: 100%; font: inherit; font-size: 1.1rem; padding: 10px 12px; min-height: 44px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--bg); color: var(--ink); }

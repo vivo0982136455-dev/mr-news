@@ -20,7 +20,7 @@ export async function render(main) {
   const hello = hour < 11 ? "อรุณสวัสดิ์" : hour < 17 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น";
 
   main.append(h("div", { class: "book-cover" },
-    h("div", { class: "note" }, hello + " Win 👋"),
+    h("div", { class: "note" }, hello, " Win 👋"),
     h("h1", {}, "สมุดครีเอเตอร์ของ Win"),
     h("p", { style: { maxWidth: "62ch", color: "var(--ink-2)" } }, "หนังสือที่อัปเดตตัวเองทุกวัน: ดูว่าคลิปไทย-ลาวแบบไหนกำลังได้วิว (Mr News) → คิดไอเดียของเราเอง (Mr Idea) → เรียนทำคลิปทั้งแบบคนจริงและ AI → จดทุกอย่างในสมุด"),
     h("div", { class: "row" }, h("a", { class: "btn primary", href: "#/news" }, "📰 เปิด Mr News วันนี้"), h("a", { class: "btn", href: "#/idea" }, "💡 ไอเดียวันนี้"))));

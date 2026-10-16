@@ -31,6 +31,7 @@
   <script>
     (function () {
       var errors = [];
+      try { if (JSON.parse(localStorage.getItem("mn_lang")) === "lo") { document.documentElement.lang = "lo"; document.getElementById("boot-msg").textContent = "ກຳລັງເປີດ Mr News…"; } } catch (e) { /* no storage: Thai */ }
       window.addEventListener("error", function (e) { errors.push(e.message || "error"); });
       var ua = navigator.userAgent;
       var inApp = / Line\//i.test(ua) ? "LINE" : /FBAN|FBAV|FB_IAB|FB4A|Messenger/i.test(ua) ? "Messenger / Facebook" : /Instagram/i.test(ua) ? "Instagram" : /musical_ly|BytedanceWebview|TikTok/i.test(ua) ? "TikTok" : "";

@@ -3,7 +3,7 @@
 import { store, toast } from "./ui.js";
 import { thaiDay, weekOf, addDays } from "./shared/patterns.js";
 
-export const KEYS = ["mn_setup", "mn_plan", "mn_results", "mn_reviews", "mn_today", "mn_quiz", "mn_badges_seen"];
+export const KEYS = ["mn_setup", "mn_plan", "mn_results", "mn_reviews", "mn_today", "mn_quiz", "mn_badges_seen", "mn_lang", "mn_lao_fix", "mn_lao_ok"];
 
 // ---------------------------------------------------------------- setup (3 questions + one plan sentence)
 // { themes: ["couple", "food"], format: "short" | "long" | "both", minutes: 3 | 10 | 30, when: "เลิกกะ", what: "...",

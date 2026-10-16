@@ -4,6 +4,9 @@ import { h, store } from "./ui.js";
 import { CHAPTERS, chapterProgress } from "./book.js";
 import { startPwa } from "./pwa.js";
 import { showGate } from "./gate.js";
+import { lang, setLang, markHtml, tr } from "./lang.js";
+
+markHtml();
 
 startPwa();
 
@@ -22,6 +25,7 @@ const PAGES = {
   ladder: () => import("./pages/ladder.js"),
   review: () => import("./pages/review.js"),
   search: () => import("./pages/search.js"),
+  lao: () => import("./pages/lao.js"),
 };
 const BOTTOM = [
   ["", "🏠", "หน้าแรก"],
@@ -37,18 +41,26 @@ function applyTheme(t) {
   else document.documentElement.removeAttribute("data-theme");
 }
 applyTheme(store.get("mn_theme", "auto"));
-function themeButton() {
+// short = the phone's top bar: only the icon (the name is read out / shown on long press), so the bar stays one line
+function themeButton(short = false) {
   const names = { auto: "🌗 อัตโนมัติ", light: "☀️ สว่าง", dark: "🌙 มืด" };
-  const b = h("button", { class: "icon-btn", type: "button", title: "เปลี่ยนโหมดสี" }, names[store.get("mn_theme", "auto")]);
+  const label = (x, t) => { x.textContent = x.dataset.short ? names[t].split(" ")[0] : tr(names[t]); x.setAttribute("aria-label", tr(names[t])); };
+  const b = h("button", { class: "icon-btn theme-btn", type: "button", title: "เปลี่ยนโหมดสี", "data-short": short ? "1" : null });
+  label(b, store.get("mn_theme", "auto"));
   b.addEventListener("click", () => {
     const order = ["auto", "light", "dark"];
     const next = order[(order.indexOf(store.get("mn_theme", "auto")) + 1) % 3];
     store.set("mn_theme", next);
     applyTheme(next);
-    for (const x of document.querySelectorAll(".theme-btn")) x.textContent = names[next];
+    for (const x of document.querySelectorAll(".theme-btn")) label(x, next);
   });
-  b.classList.add("theme-btn");
   return b;
+}
+// ไทย ⇄ ລາວ: the button names the OTHER language; the page reloads in it (the choice stays on this phone)
+export function langButton(cls = "icon-btn") {
+  const to = lang() === "lo" ? "th" : "lo";
+  return h("button", { class: cls + " lang-btn", type: "button", lang: to, "aria-label": "ภาษา: ไทย / ລາວ",
+    onclick: () => { setLang(to); location.reload(); } }, to === "lo" ? "ລາວ" : "ไทย");
 }
 
 function shell() {
@@ -62,10 +74,10 @@ function shell() {
       h("div", { class: "ch" }, "บทเรียน"),
       link("ladder", "🪜", "บันได 5 ขั้น"), link("review", "🧠", "ทวนความจำ"), link("search", "🔎", "ค้นหา + อภิธานศัพท์"),
       CHAPTERS.map((c) => link(c.id, c.icon, c.title, true)),
-      h("div", { class: "ch" }, "อื่นๆ"), link("", "🏠", "หน้าแรก / ปก")),
-    h("div", { class: "foot" }, themeButton(), h("p", { style: { marginTop: "10px" } }, "ข้อมูลอัปเดตเองทุก 6 ชั่วโมง โน้ตของ Win เก็บในเครื่องนี้เท่านั้น")));
+      h("div", { class: "ch" }, "อื่นๆ"), link("", "🏠", "หน้าแรก / ปก"), link("lao", "🇱🇦", "ตรวจคำลาว")),
+    h("div", { class: "foot" }, h("div", { class: "row" }, themeButton(), langButton()), h("p", { style: { marginTop: "10px" } }, "ข้อมูลอัปเดตเองทุก 6 ชั่วโมง โน้ตของ Win เก็บในเครื่องนี้เท่านั้น")));
   const top = h("header", { class: "top" }, h("a", { class: "logo", href: "#/" }, h("b", {}, "MN"), "สมุดครีเอเตอร์"), h("span", { class: "spacer" }),
-    h("a", { class: "icon-btn", href: "#/search", "aria-label": "ค้นหาทั้งเล่ม", style: { display: "inline-flex", alignItems: "center", textDecoration: "none" } }, "🔎"), themeButton());
+    h("a", { class: "icon-btn", href: "#/search", "aria-label": "ค้นหาทั้งเล่ม", style: { display: "inline-flex", alignItems: "center", textDecoration: "none" } }, "🔎"), langButton(), themeButton(true));
   const main = h("main", { id: "main", tabindex: "-1" });
   const bottom = h("nav", { class: "bottom", "aria-label": "เมนูหลัก" }, BOTTOM.map(([id, ico, name]) => h("a", { href: "#/" + id, "data-id": id }, h("span", { class: "ico" }, ico), name)));
   document.body.replaceChildren(h("div", { class: "app" }, side, h("div", { style: { minWidth: 0 } }, top, main)), bottom);
@@ -110,7 +122,7 @@ async function route() {
     else window.scrollTo(0, 0);
   } catch (e) {
     console.error(e);
-    if (seq === renderSeq) main.replaceChildren(h("div", { class: "card" }, h("h2", {}, "เปิดหน้านี้ไม่ได้"), h("p", {}, "ลองกดรีเฟรช ถ้ายังไม่ได้ ให้บอก Steep พร้อมข้อความนี้:"), h("code", {}, String(e.message || e))));
+    if (seq === renderSeq) main.replaceChildren(h("div", { class: "card page-error" }, h("h2", {}, "เปิดหน้านี้ไม่ได้"), h("p", {}, "ลองกดรีเฟรช ถ้ายังไม่ได้ ให้บอก Steep พร้อมข้อความนี้:"), h("code", {}, String(e.message || e))));
   }
 }
 window.addEventListener("hashchange", route);

@@ -4,12 +4,24 @@
 import { h, toast } from "../ui.js";
 import { THEMES } from "../shared/themes.js";
 import { getSetup, saveSetup } from "../my-store.js";
+import { lang, setLang } from "../lang.js";
 
 export async function render(main) {
   main.append(h("div", { class: "page-head" },
     h("h1", {}, "👋 เริ่มที่นี่"),
     h("p", {}, "ตอบ 3 ข้อ (ข้ามได้ทุกข้อ แก้ได้ทุกเมื่อ) แล้วหน้าแรกจะเลือกคลิปตัวอย่าง ไอเดีย และงานเล็กๆ ของวันนี้ให้ตรงกับเพจของ Win")),
+    langCard(),
     setupForm(() => { location.hash = "#/"; }));
+}
+
+function langCard() {
+  const choose = (l) => { if (l !== lang()) { setLang(l); location.reload(); } };
+  return h("div", { class: "card", id: "lang" },
+    h("h3", {}, "ภาษาของสมุด"),
+    h("div", { class: "chips", role: "group", "aria-label": "ภาษา" },
+      h("button", { type: "button", lang: "th", "aria-pressed": String(lang() === "th"), onclick: () => choose("th") }, "ไทย"),
+      h("button", { type: "button", lang: "lo", "aria-pressed": String(lang() === "lo"), onclick: () => choose("lo") }, "ລາວ")),
+    h("p", { class: "note" }, h("a", { href: "#/lao" }, "ตรวจคำลาว"), " · ", "เมนู ปุ่ม และหัวข้อเป็นภาษาลาวแล้ว บทเรียนยังเป็นภาษาไทย"));
 }
 
 export function setupForm(onDone) {

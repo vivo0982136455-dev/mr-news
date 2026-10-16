@@ -4,6 +4,7 @@
 // Every lesson ends with "ทำเลย" (one action) and 2-3 questions that come back after 1, 3 and 7 days (#/review),
 // and every chapter says when its facts were last checked.
 import { h, md, mdEl, promptBox, embed, store, thDay } from "../ui.js";
+import { tr } from "../lang.js";
 import { QUIZ } from "../content/quiz.js";
 import { questionCard } from "../quiz-ui.js";
 import { thaiDay } from "../shared/patterns.js";
@@ -43,7 +44,7 @@ export async function render(main, chapterId) {
   const refresh = () => {
     const p = chapterProgress(chapterId);
     bar.style.width = `${(p.done / p.total) * 100}%`;
-    progText.textContent = `อ่านแล้ว ${p.done}/${p.total} บท`;
+    progText.textContent = tr(`อ่านแล้ว ${p.done}/${p.total} บท`);
     const s = readSet();
     for (const a of toc.querySelectorAll("a")) a.classList.toggle("done", s.has(a.getAttribute("data-l")));
   };
@@ -55,7 +56,7 @@ export async function render(main, chapterId) {
       const on = btn.getAttribute("aria-pressed") !== "true";
       setRead(l.id, on);
       btn.setAttribute("aria-pressed", String(on));
-      btn.textContent = on ? "✓ อ่านจบแล้ว" : "อ่านจบแล้ว ✓";
+      btn.textContent = tr(on ? "✓ อ่านจบแล้ว" : "อ่านจบแล้ว ✓");
       refresh();
     });
     const next = lessons[i + 1];

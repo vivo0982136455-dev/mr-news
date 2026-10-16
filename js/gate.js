@@ -7,6 +7,7 @@
 // Tests and Win's own links can skip it with ?web=1 in the address.
 import { h, fill } from "./ui.js";
 import { installState, askInstall, onInstallChange, isIOS } from "./pwa.js";
+import { lang, setLang, tr } from "./lang.js";
 
 export const TAGLINE = "จากมือใหม่ สู่ครีเอเตอร์มืออาชีพ";
 export const SUBLINE = "คลิปไทย-ลาวที่กำลังได้วิวทุกวัน · ไอเดียใหม่ทุกเช้า · บันได 5 ขั้น";
@@ -39,6 +40,7 @@ export function showGate(onDone = () => {}) {
   onInstallChange(draw); // the browser's install offer can arrive a few seconds after the page
   draw();
   open(h("div", { class: "gate install", role: "dialog", "aria-modal": "true", "aria-labelledby": "gate-title" },
+    langSwitch(),
     h("img", { src: "icons/icon-192.png", alt: "", width: 72, height: 72, class: "gate-icon" }),
     h("div", { class: "gate-kicker" }, "Mr News · ", TAGLINE),
     h("h1", { id: "gate-title" }, "ติดตั้ง Mr News ก่อน"),
@@ -80,12 +82,20 @@ function splash(onOpen) {
   // each line breaks where the meaning breaks: "จากมือใหม่ / สู่ครีเอเตอร์มืออาชีพ"
   const lines = (text, sep) => text.split(sep).map((part, i, all) => [h("span", { class: "line" }, part.trim()), i < all.length - 1 ? sep : null]);
   return h("div", { class: "gate splash", role: "dialog", "aria-modal": "true", "aria-labelledby": "splash-title" },
+    langSwitch(),
     h("img", { src: "icons/icon-192.png", alt: "", width: 72, height: 72, class: "gate-icon" }),
     h("div", { class: "gate-kicker" }, "MR NEWS · สมุดครีเอเตอร์"),
-    h("h1", { id: "splash-title" }, lines(TAGLINE, " ")),
+    h("h1", { id: "splash-title" }, lines(tr(TAGLINE), " ")),
     h("p", { class: "gate-sub" }, h("span", { class: "line" }, "คลิปไทย-ลาวที่กำลังได้วิวทุกวัน"), h("span", { class: "line" }, "ไอเดียใหม่ทุกเช้า · บันได 5 ขั้น")),
     h("div", { class: "gate-arrow", "aria-hidden": "true", html: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l6 6 6-6"/><path d="M6 13l6 6 6-6"/></svg>' }),
     h("button", { class: "gate-open", type: "button", onclick: onOpen }, "เปิด ", h("span", { "aria-hidden": "true" }, "→")));
+}
+
+// a friend from Laos can switch before anything else (the screen comes back in that language)
+function langSwitch() {
+  const to = lang() === "lo" ? "th" : "lo";
+  return h("button", { class: "gate-lang", type: "button", lang: to, "aria-label": "ภาษา: ไทย / ລາວ",
+    onclick: () => { setLang(to); location.reload(); } }, to === "lo" ? "ພາສາລາວ" : "ภาษาไทย");
 }
 
 let layer = null;

@@ -175,6 +175,30 @@ for (const [k, l] of Object.entries(LE.lessons)) {
   ok(l.vids.every((v) => v.d <= MAX_SEC), `lesson ${k}: no video longer than 30 min`);
 }
 
+// ---- the Lao words (js/content/lao.js): each key still used by the page code, no Thai letters in the Lao ----
+{
+  const { GROUPS, LO } = await import(pathToFileURL(path.join(ROOT, "js/content/lao.js")).href);
+  const files = fs.readdirSync(path.join(ROOT, "js"), { recursive: true }).map(String).filter((f) => f.endsWith(".js") && !f.endsWith("lao.js") || f.endsWith("pages" + path.sep + "lao.js"));
+  // a key is used when the code has it as written (or with \" escapes); a {} key when the code has the same
+  // words around a ${...} value (a quote or backtick inside a regex makes pairing quotes unreliable, so no parsing)
+  const src = files.map((f) => read(path.join("js", f))).join("\n");
+  const esc = (t) => t.replace(/[.*+?^$()|[\]\\{}]/g, "\\$&");
+  const used = (k) => /\{n?\}/.test(k)
+    ? new RegExp(k.split(/\{n?\}/).map(esc).join("\\$\\{[^\\n]{1,160}?\\}")).test(src)
+    : src.includes(k) || src.includes(JSON.stringify(k).slice(1, -1));
+  ok(Object.keys(LO).length >= 300, "Lao: 300+ menu / button / heading words", Object.keys(LO).length);
+  ok(Object.keys(LO).length === GROUPS.reduce((n, [, g]) => n + Object.keys(g).length, 0), "Lao: no word twice in two groups");
+  for (const [k, v] of Object.entries(LO)) {
+    ok(used(k), `Lao key still used in the page code: ${k}`);
+    // Thai and Lao letters look alike: a Thai letter typed by mistake in the Lao is caught here
+    // (allowed: menu names the phone itself shows, in quotes, and the page name วันๆ)
+    const rest = v.replace(/"[^"]*"/g, "").replace(/วันๆ/g, "");
+    ok(!/[\u0E00-\u0E7F]/.test(rest), `Lao has no Thai letters: ${k}`, v);
+    ok(/[\u0E80-\u0EFF]/.test(v), `Lao is written in Lao: ${k}`, v);
+    ok((k.match(/\{n?\}/g) || []).join() === (v.match(/\{n?\}/g) || []).join(), `Lao keeps the {} values: ${k}`, v);
+  }
+}
+
 // ---------------------------------------------------------------- 3. browser
 console.log("3. browser");
 const PORT = 8790;
@@ -547,6 +571,81 @@ try {
   ok(await p.until(`document.querySelector(".embed iframe")`), "a lesson video loads YouTube only after the tap");
   await p.eval(`localStorage.clear(); return true;`);
   await p.close();
+
+  // ---- the book in Lao (ລາວ): every page, the menus, the dates, the check page, the first screen ----
+  const lo = await browser.newPage({ width: 380, height: 820 });
+  await lo.goto(BASE + "#/notes", 800);
+  await lo.eval(`localStorage.clear(); localStorage.setItem("mn_lang", JSON.stringify("lo")); return true;`);
+  await lo.cdp("Page.reload");
+  await lo.until(`document.querySelector("main h1")`, 15000);
+  const LAO = /[\u0E80-\u0EFF]/, THAI = /[\u0E00-\u0E7F]/;
+  for (const r of [...ROUTES, "lao"]) {
+    lo.errors.length = 0;
+    await lo.goto(BASE + "#/" + r, 300);
+    await lo.until(`document.querySelector("main h1") || document.querySelector("main").innerText.includes("ເປີດໜ້ານີ້ບໍ່ໄດ້")`, 15000);
+    await sleep(600);
+    const problems = await lo.eval(LAYOUT_CHECK);
+    const touch = await lo.eval(TOUCH_CHECK);
+    ok(!problems.length && !lo.errors.length, `Lao 380px #/${r}`, [...problems, ...lo.errors].join(" | "));
+    ok(!touch.length, `Lao 380px #/${r}: every control 44 px+, no text under 13 px`, touch.join(" | "));
+    ok(await lo.eval(`return !/\\{n?\\}/.test(document.body.innerText);`), `Lao #/${r}: no {n} left in the page`);
+  }
+  ok(await lo.eval(`return document.documentElement.lang === "lo" && document.documentElement.classList.contains("lo");`), "Lao: the page says it is Lao (fonts, screen readers)");
+  const bottomNav = await lo.eval(`return [...document.querySelectorAll(".bottom a")].map(a => a.innerText.replace(/\\s+/g, " ").trim());`);
+  ok(bottomNav.every((t) => !THAI.test(t)) && bottomNav.filter((t) => LAO.test(t)).length === 3, "Lao: the bottom menu is Lao (หน้าแรก / เรียน / สมุด)", bottomNav.join(" | "));
+  // the phone's top bar keeps the book's name on ONE line with the ไทย / ລາວ button added
+  ok(await lo.eval(`return document.querySelector(".top .logo").getBoundingClientRect().height <= 44;`), "Lao 380px: the top bar stays one line", await lo.eval(`return document.querySelector(".top .logo").getBoundingClientRect().height;`));
+  await lo.goto(BASE + "#/news", 300);
+  await lo.until(`document.querySelector(".fresh")`, 15000);
+  ok(await lo.eval(`return /ມັງກອນ|ກຸມພາ|ມີນາ|ເມສາ|ພຶດສະພາ|ມິຖຸນາ|ກໍລະກົດ|ສິງຫາ|ກັນຍາ|ຕຸລາ|ພະຈິກ|ທັນວາ/.test(document.querySelector(".fresh").innerText) && !/25[6-9]\\d/.test(document.querySelector(".fresh").innerText);`),
+    "Lao: dates in Lao months and the common year (not the Thai 25xx)", await lo.eval(`return document.querySelector(".fresh").innerText;`));
+  ok(await lo.eval(`return [...document.querySelectorAll(".vcard h3, .vcard .t, .vcard a")].some(e => THAI_RE.test(e.innerText));`.replace("THAI_RE", "/[\\u0E00-\\u0E7F]/")), "Lao: YouTube titles stay as they are (never translated)");
+  await lo.shot("lao-news-380.png");
+  await lo.goto(BASE + "#/", 300);
+  await lo.until(`document.querySelector("main h1")`, 15000);
+  await lo.shot("lao-home-380.png");
+  // the check page: ✓ one line, correct another -> saved, used by the book at once, in the copy for Steep
+  await lo.goto(BASE + "#/lao", 300);
+  await lo.until(`document.querySelector(".lao-row")`, 15000);
+  await lo.eval(`document.querySelector("details.fold").open = true; return true;`);
+  const firstTh = await lo.eval(`return document.querySelector(".lao-row .lao-th").textContent;`);
+  ok(firstTh === "หน้าแรก", "check page: the Thai line stays Thai (not translated itself)", firstTh);
+  await lo.eval(`[...document.querySelectorAll(".lao-row")][1].querySelector("button").click(); return true;`);
+  ok(await lo.until(`JSON.parse(localStorage.getItem("mn_lao_ok") || "[]").length === 1`, 3000), "check page: ✓ is saved");
+  await lo.eval(`[...document.querySelectorAll(".lao-row")][0].querySelectorAll("button")[1].click(); return true;`);
+  await lo.until(`document.querySelector(".lao-input")`, 3000);
+  await lo.eval(`const i = document.querySelector(".lao-input"); i.value = "ໜ້າຫຼັກ"; [...i.parentNode.querySelectorAll("button")][0].click(); return true;`);
+  ok(await lo.until(`JSON.parse(localStorage.getItem("mn_lao_fix") || "{}")["หน้าแรก"] === "ໜ້າຫຼັກ"`, 3000), "check page: Win's correction is saved");
+  ok(await lo.eval(`return document.querySelector(".lao-row.fixed .lao-lo").textContent === "ໜ້າຫຼັກ" && document.querySelector(".card b").textContent.startsWith("2 /");`), "check page: shows the correction and counts 2 checked");
+  const layLao = await lo.eval(LAYOUT_CHECK);
+  ok(!layLao.length, "380px: the check page fits the screen while editing", layLao.join(" | "));
+  await lo.shot("lao-check-380.png");
+  await lo.cdp("Page.reload");
+  await lo.until(`document.querySelector(".bottom a")`, 15000);
+  ok(await lo.eval(`return document.querySelector(".bottom a").innerText.includes("ໜ້າຫຼັກ");`), "Win's correction is used by the menu at once on his phone");
+  await lo.eval(`navigator.clipboard.writeText = async (t) => { window.__copied = t; }; [...document.querySelectorAll("button")].find(b => b.textContent.includes("ส่งให้ Steep")).click(); return true;`);
+  ok(await lo.until(`window.__copied && window.__copied.includes("หน้าแรก => ໜ້າຫຼັກ") && window.__copied.includes("ตรวจแล้ว 2 / ")`, 3000), "'ส่งให้ Steep' copies every correction and the count");
+  // the button switches back to Thai, and the choice stays
+  await lo.eval(`document.querySelector(".top .lang-btn").click(); return true;`);
+  await sleep(2500);
+  ok(await lo.eval(`return document.documentElement.lang === "th" && JSON.parse(localStorage.getItem("mn_lang")) === "th" && document.querySelector(".bottom a").innerText.includes("หน้าแรก");`), "the ไทย / ລາວ button switches the whole book back to Thai");
+  ok(await lo.eval(`return document.querySelector(".top .logo").getBoundingClientRect().height <= 44 && document.querySelector(".top .theme-btn").getAttribute("aria-label") === "🌗 อัตโนมัติ";`), "Thai 380px: the top bar stays one line (colour button shows its icon, says its name to screen readers)");
+  await lo.eval(`document.querySelector(".top .lang-btn").click(); return true;`);
+  await sleep(2500);
+  ok(await lo.eval(`return document.documentElement.lang === "lo";`), "...and to Lao again");
+  // a friend opens the link in a browser: the install screen in Lao, with a button to go back to Thai
+  await lo.eval(`localStorage.removeItem("mn_web_ok"); return true;`);
+  await lo.goto(SITE + "#/", 300);
+  await lo.cdp("Page.reload");
+  ok(await lo.until(`document.querySelector("#gate-title") && document.querySelector("#gate-title").textContent === "ຕິດຕັ້ງ Mr News ກ່ອນ"`, 15000), "install screen in Lao: 'ຕິດຕັ້ງ Mr News ກ່ອນ'");
+  const glo = await lo.eval(LAYOUT_CHECK.replace('document.querySelector("main")', 'document.querySelector(".gate-layer")').replace('document.querySelectorAll("main *")', 'document.querySelectorAll(".gate-layer *")').replace('"main h1"', '".gate-layer h1"'));
+  ok(!glo.length, "380px: the Lao install screen fits the screen", glo.join(" | "));
+  await lo.shot("lao-gate-380.png");
+  await lo.eval(`document.querySelector(".gate-lang").click(); return true;`);
+  await sleep(2500);
+  ok(await lo.until(`document.querySelector("#gate-title") && document.querySelector("#gate-title").textContent === "ติดตั้ง Mr News ก่อน"`, 15000), "the install screen's language button switches to Thai");
+  await lo.eval(`localStorage.clear(); return true;`);
+  await lo.close();
 
   // ---- install as an app + use without a connection ----
   console.log("4. install + offline");
