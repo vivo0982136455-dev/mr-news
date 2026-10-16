@@ -14,7 +14,8 @@ export const SUBLINE = "คลิปไทย-ลาวที่กำลัง�
 // the app a link was opened in, when it is not a real browser
 export function inAppBrowser(ua = navigator.userAgent) {
   if (/ Line\//i.test(ua)) return "LINE";
-  if (/FBAN|FBAV|FB_IAB|FB4A|Messenger/i.test(ua)) return "Facebook";
+  if (/Messenger|Orca-Android|FB_IAB\/Orca/i.test(ua)) return "Messenger";
+  if (/FBAN|FBAV|FB_IAB|FB4A/i.test(ua)) return "Facebook";
   if (/Instagram/i.test(ua)) return "Instagram";
   if (/musical_ly|BytedanceWebview|TikTok/i.test(ua)) return "TikTok";
   return null;
