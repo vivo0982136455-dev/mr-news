@@ -1,10 +1,10 @@
 {
  "trends": {
-  "at": "2026-11-03T06:55:01.235Z",
+  "at": "2026-11-03T19:31:39.248Z",
   "ok": true,
   "info": {
    "read": 10,
-   "today": 24
+   "today": 10
   }
  },
  "youtube": {
@@ -21,20 +21,20 @@
   }
  },
  "famous": {
-  "at": "2026-10-27T19:40:43.782Z",
+  "at": "2026-11-03T19:31:40.263Z",
   "ok": true,
   "info": {
-   "retrieved": "2026-10-27T19:40:42.784Z",
+   "retrieved": "2026-11-03T19:31:39.249Z",
    "source": "Wikipedia (CC BY-SA 4.0)"
   }
  },
  "learn": {
-  "at": "2026-10-27T19:40:53.310Z",
+  "at": "2026-11-03T19:31:49.664Z",
   "ok": true,
   "info": {
-   "updated": "2026-10-27T19:40:53.310Z",
+   "updated": "2026-11-03T19:31:49.663Z",
    "counts": {
-    "h-plan": 2,
+    "h-plan": 4,
     "h-shoot": 4,
     "h-light": 4,
     "h-sound": 4,
