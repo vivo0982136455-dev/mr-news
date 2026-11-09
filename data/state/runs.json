@@ -1,21 +1,21 @@
 {
  "trends": {
-  "at": "2026-11-09T06:44:49.365Z",
+  "at": "2026-11-09T22:26:55.846Z",
   "ok": true,
   "info": {
    "read": 10,
-   "today": 27
+   "today": 10
   }
  },
  "youtube": {
-  "at": "2026-11-08T13:34:36.306Z",
+  "at": "2026-11-09T22:29:05.168Z",
   "ok": true,
   "info": {
-   "videos": 5000,
+   "videos": 4936,
    "channels": 3000,
    "used": {
     "search": 36,
-    "units": 457
+    "units": 452
    },
    "failedSearches": 0
   }
