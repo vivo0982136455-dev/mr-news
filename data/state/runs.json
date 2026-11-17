@@ -1,38 +1,38 @@
 {
  "trends": {
-  "at": "2026-11-16T23:31:53.280Z",
+  "at": "2026-11-17T08:00:25.377Z",
   "ok": true,
   "info": {
    "read": 10,
-   "today": 11
+   "today": 21
   }
  },
  "youtube": {
-  "at": "2026-11-15T18:57:04.669Z",
+  "at": "2026-11-17T08:02:26.622Z",
   "ok": true,
   "info": {
-   "videos": 4808,
+   "videos": 4903,
    "channels": 3000,
    "used": {
     "search": 36,
-    "units": 455
+    "units": 447
    },
    "failedSearches": 0
   }
  },
  "famous": {
-  "at": "2026-11-10T19:48:25.807Z",
+  "at": "2026-11-17T08:02:27.758Z",
   "ok": true,
   "info": {
-   "retrieved": "2026-11-10T19:48:24.943Z",
+   "retrieved": "2026-11-17T08:02:26.622Z",
    "source": "Wikipedia (CC BY-SA 4.0)"
   }
  },
  "learn": {
-  "at": "2026-11-10T19:48:33.713Z",
+  "at": "2026-11-17T08:02:36.027Z",
   "ok": true,
   "info": {
-   "updated": "2026-11-10T19:48:33.713Z",
+   "updated": "2026-11-17T08:02:36.026Z",
    "counts": {
     "h-plan": 4,
     "h-shoot": 4,
